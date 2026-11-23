@@ -1,8 +1,9 @@
 # Axvyn
 
-Axvyn is a native Android utility app for six offline file tools. This repository
-currently contains **Milestone 1: the foundation** — a polished Compose UI with six
-navigable placeholder tool screens. No conversion engine is implemented yet.
+Axvyn is a native Android utility app for six offline file tools. The foundation
+and **Stage 2: Image Compressor** are complete: the UI navigates between all six
+tools, and the compressor has a real on-device engine. The other five tool screens
+remain placeholders.
 
 ## Principles
 
@@ -91,7 +92,7 @@ APK: `app/build/outputs/apk/debug/app-debug.apk`.
 ## Roadmap
 
 1. ✅ Foundation — project, theme, navigation, home and placeholders.
-2. Image Compressor — first real engine.
+2. ✅ Image Compressor — real JPEG/PNG/WebP engine with quality, resize and target size.
 3. PDF to JPG / PNG.
 4. WEBP / AVIF to PNG (with AVIF fallback on older devices).
 5. Audio to MP3 (license and codec audit before adding FFmpeg).
