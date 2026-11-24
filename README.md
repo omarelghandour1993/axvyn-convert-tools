@@ -1,8 +1,8 @@
 # Axvyn
 
 Axvyn is a native Android utility app for six offline file tools. The foundation,
-**Stage 2: Image Compressor**, **Stage 3: PDF to Images** and **Stage 4: WEBP / AVIF to PNG**
-are complete. The other three tool screens remain placeholders.
+**Stage 2: Image Compressor**, **Stage 3: PDF to Images**, **Stage 4: WEBP / AVIF to PNG**
+and **Stage 5: Audio to MP3** are complete. The other two tool screens remain placeholders.
 
 ## Principles
 
@@ -56,7 +56,7 @@ added with the actual conversions, so the UI never owns processing code.
 | Text to Voice | Up to 3,000 characters | Downloadable offline voice packs, MP3 export |
 | WEBP / AVIF to PNG | WebP, AVIF | PNG output, preserves dimensions/transparency, clear unsupported-AVIF error |
 | PDF to Images | PDF | JPG/PNG, page selection, 150/300 DPI, one page at a time |
-| Audio to MP3 | M4A, WAV, FLAC | 320 kbps via a vetted local FFmpeg build |
+| Audio to MP3 | M4A, WAV, FLAC | 128/192/256/320 kbps MP3 via Android MediaCodec decode + vendored LAME (LGPL v2) |
 
 ## Dependencies
 
@@ -88,13 +88,19 @@ $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 
 APK: `app/build/outputs/apk/debug/app-debug.apk`.
 
+Stage 5 native build requires Android NDK `27.2.12479018` and CMake `3.22.1` (installed via SDK Manager). Native ABIs: `armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`.
+
+## Third-party notices
+
+Audio to MP3 uses vendored [LAME 3.100](https://lame.sourceforge.io/) for MP3 encoding only (LGPL v2). See [`docs/LEGAL-LAME.md`](docs/LEGAL-LAME.md) for provenance, license, and relinking details. No mpglib decoding is compiled; no FFmpeg is bundled.
+
 ## Roadmap
 
 1. ✅ Foundation — project, theme, navigation, home and placeholders.
 2. ✅ Image Compressor — real JPEG/PNG/WebP engine with quality, resize and target size.
 3. ✅ PDF to Images — PdfRenderer, JPG/PNG, page selection, 150/300 DPI, one page at a time.
 4. ✅ WEBP / AVIF to PNG — ImageDecoder/BitmapFactory decode, PNG output, dimensions/transparency preserved, clear unsupported-AVIF error.
-5. Audio to MP3 (license and codec audit before adding FFmpeg).
+5. ✅ Audio to MP3 — MediaExtractor/MediaCodec decode + vendored LAME 3.100 (LGPL v2) encode, 128/192/256/320 kbps, no FFmpeg.
 6. Word to PDF (DOCX parser + PDF renderer, including Arabic/RTL).
 7. Text to Voice (engine selection, 14-language verification, offline packs).
 8. Final testing: airplane mode, interruptions, large files, low storage, ABI coverage.

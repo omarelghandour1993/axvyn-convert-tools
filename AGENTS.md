@@ -25,8 +25,8 @@ The six tools, in the agreed order:
 2. **Image Compressor — DONE**
 3. **PDF to Images — DONE**
 4. **WEBP / AVIF to PNG — DONE**
-5. **Audio to MP3 — NEXT** (only after licence/codec audit)
-6. Text to Voice — offline voice packs, 14-language verification
+5. **Audio to MP3 — DONE**
+6. **Text to Voice — NEXT** (offline voice packs, 14-language verification)
 
 Do not start a later engine until the current stage is approved.
 
@@ -87,13 +87,14 @@ init script.
 
 ## Current state
 
-Stages 1–4 are complete, built, installed, tested on the real phone, committed and pushed.
+Stages 1–5 are complete, built, installed, tested on the real phone, committed and pushed.
 
 - `ed2e7c2` — foundation: theme, navigation, Home, History, Settings, six placeholders
 - `c2f9a64` — Stage 2 Image Compressor
 - `4b0fd4b` — agent handoff notes
 - `b3f6c72` — Stage 3 PDF to Images
-- Stage 4 commit — WEBP / AVIF to PNG (see git log for hash after this session is committed)
+- `986d1fe` — Stage 4 WEBP / AVIF to PNG
+- Stage 5 commit — Audio to MP3 (see git log for hash after this session is committed)
 
 ## Stage 2 details — Image Compressor
 
@@ -242,6 +243,54 @@ Test artifacts left on phone Downloads for inspection:
 - `axvyn-test.avif` — AVIF source
 - `axvyn-converted-1795523825499.png` — WebP-to-PNG output
 
+## Stage 5 details — Audio to MP3
+
+Implemented files:
+
+```
+features/audiotomp3/
+├── AudioToMp3State.kt          State, bitrate enum, source/result models
+├── AudioConversionEngine.kt    MediaExtractor/MediaCodec decode + LAME encode
+├── AudioToMp3Repository.kt     SAF/cache coordination, FileProvider URI
+├── AudioToMp3ViewModel.kt      UI state, validation, progress, cancel, save
+├── AudioToMp3Screen.kt         Compose UI, bitrate selector, SAF launchers
+└── LameMp3Encoder.kt           Kotlin JNI wrapper for libmp3lame
+
+app/src/main/cpp/
+├── CMakeLists.txt              Builds libmp3lame (shared) + libaxvyn_lame (JNI)
+├── config.h                    Minimal Android config for LAME
+├── lame_jni.c                  JNI bridge (encode/flush/close only)
+└── lame-3.100/                 Vendored LAME 3.100 source (LGPL v2)
+```
+
+Behaviour:
+
+- Input: M4A, WAV, FLAC via `ACTION_OPEN_DOCUMENT` (`audio/*` picker filter).
+- Output: MP3 via `ACTION_CREATE_DOCUMENT` (`audio/mpeg`).
+- Bitrate selectable: 128 / 192 / 256 / 320 kbps (CBR, LAME VBR off, quality 2).
+- Decode: Android `MediaExtractor` + `MediaCodec` to PCM16 (requests `KEY_PCM_ENCODING` PCM 16BIT; converts float PCM if device returns float).
+- Encode: vendored LAME 3.100 via JNI. Only encoding APIs used; no mpglib decoding compiled (`HAVE_MPGLIB` not defined).
+- Chunk-based processing with 10ms codec dequeue timeouts, progress from presentation time / duration, coroutine cancellation checks.
+- Temp output in app-private cache; deleted on save/discard/cancel/failure/teardown.
+- No `INTERNET` permission; no FFmpeg.
+
+### LAME audit / compliance
+
+- **Provenance**: LAME 3.100 source from https://lame.sourceforge.io/ (SourceForge), vendored at `app/src/main/cpp/lame-3.100/`.
+- **License**: LGPL v2 (`app/src/main/cpp/lame-3.100/COPYING`).
+- **Compliance**: `libmp3lame.so` built as a separate shared library; `libaxvyn_lame.so` links dynamically. Relinking/replacement procedure documented in `docs/LEGAL-LAME.md`.
+- **ABIs**: `armeabi-v7a`, `arm64-v8a`, `x86`, `x86_64`.
+- **Build deps**: Android NDK `27.2.12479018`, CMake `3.22.1`.
+
+### Stage 5 phone verification (24 Nov 2026)
+
+Verified on `RK8X700ZAGA` (SM-A155F, Android 17) with ffmpeg-generated 2s test tones pushed to Downloads:
+
+- **WAV** (`axvyn-test.wav`, 352.9 KB, 0:02): 320 kbps → **MP3 82.5 KB, 0:02, audio/mpeg**. Saved to `/sdcard/Download/axvyn-audio-1795525846791.mp3` (82,546 bytes). Result cleared after save.
+- **M4A/AAC** (`axvyn-test.m4a`, 33.5 KB, 0:02): 128 kbps → **MP3 33.4 KB, 0:02, audio/mpeg**. Saved to `/sdcard/Download/axvyn-audio-1795526176896.mp3` (33,435 bytes). (Initial test exposed a configure bug — decoder was configured with a stripped format missing AAC CSD; fixed by configuring with original inputFormat and requesting PCM16.)
+- **FLAC** (`axvyn-test.flac`, 39.3 KB, 0:02): 320 kbps → **MP3 82.5 KB, 0:02, audio/mpeg**.
+- No Axvyn fatal exception observed in `logcat`.
+
 ## Layout
 
 ```
@@ -267,25 +316,24 @@ app/src/main/java/com/axvyn/app/
     ├── imagecompressor/    REAL ENGINE — Stage 2
     ├── pdftoimage/         REAL ENGINE — Stage 3
     ├── imageconverter/     REAL ENGINE — Stage 4
+    ├── audiotomp3/         REAL ENGINE — Stage 5
     ├── wordtopdf/          placeholder
-    ├── texttovoice/        placeholder
-    └── audiotomp3/         placeholder — Stage 5 target
+    └── texttovoice/        placeholder — Stage 6 target
 ```
 
 ## Where to begin tomorrow
 
-**Start Stage 5: Audio to MP3**, but only after a licence/codec audit.
+**Start Stage 6: Text to Voice** (per the agreed AGENTS order).
 
 Before implementing:
 
-1. Audit FFmpeg/native codec options for Android packaging, size, ABI coverage and licence
-   compatibility. Do not add an FFmpeg dependency until the audit is complete and approved.
-2. Keep the offline-first rules: no `INTERNET`, no network SDK, no fake progress.
-3. Input: M4A, WAV, FLAC via `ACTION_OPEN_DOCUMENT`. Output: MP3 via `ACTION_CREATE_DOCUMENT`.
-4. Target 320 kbps output as specified in the roadmap; make quality/bitrate choices explicit.
-5. Add `AudioConversionEngine` and `AudioToMp3Repository` under `features/audiotomp3/`.
+1. Audit offline TTS options for Android. Prefer on-device engines/voice packs; do not add `INTERNET` for conversion. Voice-pack downloads, if any, must be explicitly user-initiated and outside the conversion path (and require a careful permission/product decision).
+2. Keep the offline-first rules for conversion: no backend, no uploads, no analytics, no fake progress.
+3. Input: up to 3,000 characters of text. Output: MP3 export.
+4. Support 14-language verification as specified in project goals; be explicit about what the device/engine actually supports.
+5. Add `TextToVoiceEngine` and `TextToVoiceRepository` under `features/texttovoice/`.
    ViewModel owns validation, progress, cancellation and temp-file lifecycle.
-6. Build, install on the connected phone, test with real audio files, then commit and push.
+6. Build, install on the connected phone, test with real text/voice output, then commit and push.
    Update README roadmap and this AGENTS.md.
 
 Useful reminder: the user explicitly wants the app installed on the connected phone after
@@ -293,7 +341,7 @@ each stage. Check `adb devices` before assuming the cable is still attached.
 
 ## Git state at handoff
 
-After Stage 4 code + docs are committed, push `main` to
+After Stage 5 code + docs are committed, push `main` to
 `https://github.com/omarelghandour1993/axvyn-convert-tools` and verify with:
 
 ```powershell
@@ -302,4 +350,4 @@ git log -2 --oneline
 git ls-remote origin refs/heads/main
 ```
 
-`origin/main` must match local `HEAD`. Then begin Stage 5 from a clean tree.
+`origin/main` must match local `HEAD`. Then begin Stage 6 from a clean tree.
