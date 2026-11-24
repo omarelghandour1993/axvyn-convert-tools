@@ -24,8 +24,8 @@ The six tools, in the agreed order:
 1. Word to PDF — DOCX, max 10 MB, custom renderer, not Word-perfect
 2. **Image Compressor — DONE**
 3. **PDF to Images — DONE**
-4. **WEBP / AVIF to PNG — NEXT**
-5. Audio to MP3 — only after licence/codec audit
+4. **WEBP / AVIF to PNG — DONE**
+5. **Audio to MP3 — NEXT** (only after licence/codec audit)
 6. Text to Voice — offline voice packs, 14-language verification
 
 Do not start a later engine until the current stage is approved.
@@ -87,12 +87,13 @@ init script.
 
 ## Current state
 
-Stages 1–3 are complete, built, installed, tested on the real phone, committed and pushed.
+Stages 1–4 are complete, built, installed, tested on the real phone, committed and pushed.
 
 - `ed2e7c2` — foundation: theme, navigation, Home, History, Settings, six placeholders
 - `c2f9a64` — Stage 2 Image Compressor
 - `4b0fd4b` — agent handoff notes
-- Stage 3 commit — PDF to Images (see git log for hash after this session is committed)
+- `b3f6c72` — Stage 3 PDF to Images
+- Stage 4 commit — WEBP / AVIF to PNG (see git log for hash after this session is committed)
 
 ## Stage 2 details — Image Compressor
 
@@ -197,6 +198,50 @@ Test artifacts left on phone Downloads for inspection:
 - `axvyn-page-1-1795522634784.jpg` — page 1 JPG output
 - `axvyn-page-2-1795522783267.png` — page 2 PNG output
 
+## Stage 4 details — WEBP / AVIF to PNG
+
+Implemented files:
+
+```
+features/imageconverter/
+├── ImageConverterState.kt        State, source/result models, formatImageBytes()
+├── ImageConversionEngine.kt      ImageDecoder/BitmapFactory decode + PNG encode
+├── ImageConverterRepository.kt   SAF/cache coordination, FileProvider URI
+├── ImageConverterViewModel.kt    UI state, validation, progress, cancel, save
+└── ImageConverterScreen.kt       Compose UI, OpenDocument/CreateDocument launchers
+```
+
+Behaviour:
+
+- Input: WebP and AVIF via `ACTION_OPEN_DOCUMENT` (`image/webp`, `image/avif`).
+- Output: PNG via `ACTION_CREATE_DOCUMENT` (`image/png`).
+- Preserves dimensions and transparency when the source can be decoded on-device.
+- Decodes one image at a time using `ImageDecoder` (API 28+) with software allocation and
+  `BitmapFactory` bounds fallback; encodes PNG with `Bitmap.CompressFormat.PNG`.
+- AVIF decode is device/codec dependent. If decode fails for an AVIF, the engine throws a
+  clear `IllegalArgumentException` explaining that the AVIF can't be decoded on this device;
+  the UI shows it as conversion failure/message rather than crashing.
+- Output is written to app-private cache, exposed through FileProvider for preview, and
+  copied to the SAF destination on "Save a copy". Temp file is deleted after save/discard.
+- Progress and cancellation use coroutines; no fake progress, no online processing.
+
+### Stage 4 phone verification (24 Nov 2026)
+
+Verified on `RK8X700ZAGA` (SM-A155F, Android 17) with test images pushed to Downloads:
+
+- **WebP** (`axvyn-test.webp`, 44 B, 96×64, WebP): converted to PNG 257 B, 96×64, `image/png`.
+  Saved to `/sdcard/Download/axvyn-converted-1795523825499.png` (257 bytes). Result cleared
+  after save, confirming temp cleanup.
+- **AVIF** (`axvyn-test.avif`, 323 B, 64×64, AVIF): decoded and converted on this device to
+  PNG 180 B, 64×64, `image/png`. Dimensions preserved.
+- No Axvyn fatal exception observed in `logcat`.
+
+Test artifacts left on phone Downloads for inspection:
+
+- `axvyn-test.webp` — WebP source
+- `axvyn-test.avif` — AVIF source
+- `axvyn-converted-1795523825499.png` — WebP-to-PNG output
+
 ## Layout
 
 ```
@@ -221,38 +266,34 @@ app/src/main/java/com/axvyn/app/
 └── features/
     ├── imagecompressor/    REAL ENGINE — Stage 2
     ├── pdftoimage/         REAL ENGINE — Stage 3
+    ├── imageconverter/     REAL ENGINE — Stage 4
     ├── wordtopdf/          placeholder
     ├── texttovoice/        placeholder
-    ├── imageconverter/     placeholder — Stage 4 target
-    └── audiotomp3/         placeholder
+    └── audiotomp3/         placeholder — Stage 5 target
 ```
 
 ## Where to begin tomorrow
 
-**Start Stage 4: WEBP / AVIF to PNG**, replacing
-`features/imageconverter/ImageConverterScreen.kt`, `ImageConverterViewModel.kt` and
-`ImageConverterState.kt`.
+**Start Stage 5: Audio to MP3**, but only after a licence/codec audit.
 
-Requirements for Stage 4:
+Before implementing:
 
-1. Keep the offline-first rules: no `INTERNET`, no network SDK, no fake progress.
-2. Input: WebP and AVIF via `ACTION_OPEN_DOCUMENT`. Output: PNG via `ACTION_CREATE_DOCUMENT`.
-3. Preserve dimensions and transparency. Decode one image at a time.
-4. AVIF support depends on device/API codec availability; detect unsupported AVIF cleanly and
-   show a clear message rather than crashing. Do not add a heavy third-party decoder unless
-   absolutely necessary and approved.
-5. Add `ImageConversionEngine` and `ImageConverterRepository` under `features/imageconverter/`.
+1. Audit FFmpeg/native codec options for Android packaging, size, ABI coverage and licence
+   compatibility. Do not add an FFmpeg dependency until the audit is complete and approved.
+2. Keep the offline-first rules: no `INTERNET`, no network SDK, no fake progress.
+3. Input: M4A, WAV, FLAC via `ACTION_OPEN_DOCUMENT`. Output: MP3 via `ACTION_CREATE_DOCUMENT`.
+4. Target 320 kbps output as specified in the roadmap; make quality/bitrate choices explicit.
+5. Add `AudioConversionEngine` and `AudioToMp3Repository` under `features/audiotomp3/`.
    ViewModel owns validation, progress, cancellation and temp-file lifecycle.
-6. Show source format, dimensions, original size and PNG output size. Support preview/save/cancel.
-7. Build, install on the connected phone, test with real WebP and (if supported) AVIF files,
-   then commit and push. Update README roadmap and this AGENTS.md.
+6. Build, install on the connected phone, test with real audio files, then commit and push.
+   Update README roadmap and this AGENTS.md.
 
 Useful reminder: the user explicitly wants the app installed on the connected phone after
 each stage. Check `adb devices` before assuming the cable is still attached.
 
 ## Git state at handoff
 
-After Stage 3 code + docs are committed, push `main` to
+After Stage 4 code + docs are committed, push `main` to
 `https://github.com/omarelghandour1993/axvyn-convert-tools` and verify with:
 
 ```powershell
@@ -261,4 +302,4 @@ git log -2 --oneline
 git ls-remote origin refs/heads/main
 ```
 
-`origin/main` must match local `HEAD`. Then begin Stage 4 from a clean tree.
+`origin/main` must match local `HEAD`. Then begin Stage 5 from a clean tree.

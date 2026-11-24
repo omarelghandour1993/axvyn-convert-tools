@@ -1,8 +1,8 @@
 # Axvyn
 
 Axvyn is a native Android utility app for six offline file tools. The foundation,
-**Stage 2: Image Compressor** and **Stage 3: PDF to Images** are complete. The
-other four tool screens remain placeholders.
+**Stage 2: Image Compressor**, **Stage 3: PDF to Images** and **Stage 4: WEBP / AVIF to PNG**
+are complete. The other three tool screens remain placeholders.
 
 ## Principles
 
@@ -54,7 +54,7 @@ added with the actual conversions, so the UI never owns processing code.
 | Word to PDF | `.docx`, max 10 MB | Custom renderer; not Word-perfect |
 | Image Compressor | JPEG, PNG, WebP | Quality, optional resize, before/after size |
 | Text to Voice | Up to 3,000 characters | Downloadable offline voice packs, MP3 export |
-| WEBP / AVIF to PNG | WebP, AVIF | Preserve dimensions and transparency |
+| WEBP / AVIF to PNG | WebP, AVIF | PNG output, preserves dimensions/transparency, clear unsupported-AVIF error |
 | PDF to Images | PDF | JPG/PNG, page selection, 150/300 DPI, one page at a time |
 | Audio to MP3 | M4A, WAV, FLAC | 320 kbps via a vetted local FFmpeg build |
 
@@ -93,10 +93,8 @@ APK: `app/build/outputs/apk/debug/app-debug.apk`.
 1. ✅ Foundation — project, theme, navigation, home and placeholders.
 2. ✅ Image Compressor — real JPEG/PNG/WebP engine with quality, resize and target size.
 3. ✅ PDF to Images — PdfRenderer, JPG/PNG, page selection, 150/300 DPI, one page at a time.
-4. WEBP / AVIF to PNG (with AVIF fallback on older devices).
+4. ✅ WEBP / AVIF to PNG — ImageDecoder/BitmapFactory decode, PNG output, dimensions/transparency preserved, clear unsupported-AVIF error.
 5. Audio to MP3 (license and codec audit before adding FFmpeg).
 6. Word to PDF (DOCX parser + PDF renderer, including Arabic/RTL).
 7. Text to Voice (engine selection, 14-language verification, offline packs).
 8. Final testing: airplane mode, interruptions, large files, low storage, ABI coverage.
-
-Do not start the conversion engines until the foundation is reviewed and approved.

@@ -1,20 +1,73 @@
 package com.axvyn.app.features.imageconverter
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Transform
 import androidx.compose.material.icons.filled.UploadFile
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import com.axvyn.app.ui.components.DisabledPrimaryButton
-import com.axvyn.app.ui.components.DisabledSelectionButton
-import com.axvyn.app.ui.components.PlaceholderNotice
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.axvyn.app.core.processing.ProcessingState
 import com.axvyn.app.ui.components.SectionCard
 import com.axvyn.app.ui.components.ToolScreenShell
+import kotlin.math.roundToInt
 
 @Composable
-fun ImageConverterScreen(onBack: () -> Unit) {
+fun ImageConverterScreen(
+    onBack: () -> Unit,
+    viewModel: ImageConverterViewModel = viewModel(
+        factory = ImageConverterViewModelFactory(LocalContext.current.applicationContext),
+    ),
+) {
+    val context = LocalContext.current
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    var sourceUri by rememberSaveable { mutableStateOf<Uri?>(null) }
+    val isRunning = state.processing is ProcessingState.Running
+    val progress = (state.processing as? ProcessingState.Running)?.progress ?: 0f
+
+    val pickLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            sourceUri = uri
+            viewModel.onSourceSelected(context, uri)
+        }
+    }
+    val saveLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("image/png"),
+    ) { destination ->
+        if (destination != null) viewModel.save(destination)
+    }
+
     ToolScreenShell(
         title = "WEBP / AVIF to PNG",
         description = "Convert modern image formats into widely supported PNGs.",
@@ -22,12 +75,40 @@ fun ImageConverterScreen(onBack: () -> Unit) {
         onBack = onBack,
     ) {
         SectionCard(title = "INPUT") {
-            DisabledSelectionButton(label = "Choose a WebP or AVIF image", icon = Icons.Default.UploadFile)
+            OutlinedButton(
+                onClick = { pickLauncher.launch(arrayOf("image/webp", "image/avif")) },
+                enabled = !isRunning,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+            ) {
+                Icon(Icons.Default.UploadFile, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(if (sourceUri == null) "Choose a WebP or AVIF image" else "Choose a different image")
+            }
             Text(
-                text = "Supported: .webp and .avif",
+                text = "WebP and AVIF · One image at a time · Everything stays on this device",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            state.source?.let { source ->
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(source.displayName, style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        text = "${formatImageBytes(source.sizeBytes)} · ${source.width} × ${source.height} · ${source.format.label}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (state.source != null && sourceUri == null) {
+                Text(
+                    text = "Choose the image again before converting.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
 
         SectionCard(title = "OUTPUT") {
@@ -37,15 +118,124 @@ fun ImageConverterScreen(onBack: () -> Unit) {
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = "Image dimensions and transparency will be preserved where the decoder allows it.",
+                text = "Dimensions and transparency are preserved when the source can be decoded on this device.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
-        PlaceholderNotice(
-            message = "The decoder and PNG encoder are not implemented yet. No image is converted here.",
-        )
-        DisabledPrimaryButton(label = "Convert to PNG")
+        state.message?.let { message ->
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(
+                    Icons.Default.Info,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .size(18.dp),
+                    tint = MaterialTheme.colorScheme.error,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        }
+
+        when (val processing = state.processing) {
+            is ProcessingState.Failed -> Text(
+                text = "Conversion failed: ${processing.message}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+            )
+            ProcessingState.Cancelled -> Text(
+                text = "Conversion cancelled. No file was saved.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            else -> Unit
+        }
+
+        Button(
+            onClick = { sourceUri?.let(viewModel::convert) },
+            enabled = sourceUri != null && !isRunning,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp),
+        ) {
+            Text(
+                text = if (isRunning) "Converting…" else "Convert to PNG",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+
+        if (isRunning) {
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = "${(progress * 100).roundToInt()}%",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
+            OutlinedButton(
+                onClick = viewModel::cancel,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Cancel")
+            }
+        }
+
+        state.result?.let { result ->
+            SectionCard(title = "RESULT") {
+                Text(
+                    text = "Original: ${formatImageBytes(result.originalBytes)}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    text = "PNG: ${formatImageBytes(result.convertedBytes)}",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = "${result.width} × ${result.height} · image/png",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Button(
+                    onClick = { saveLauncher.launch(result.fileName) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                ) {
+                    Icon(Icons.Default.Save, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Save a copy")
+                }
+                result.shareUri?.let { uri ->
+                    OutlinedButton(
+                        onClick = {
+                            val preview = Intent(Intent.ACTION_VIEW)
+                                .setDataAndType(uri, result.mimeType)
+                                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            runCatching {
+                                context.startActivity(Intent.createChooser(preview, "Preview image"))
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Default.Visibility, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Preview")
+                    }
+                }
+                TextButton(onClick = viewModel::discardResult) {
+                    Text("Discard result")
+                }
+            }
+        }
     }
 }
