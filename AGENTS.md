@@ -1,6 +1,6 @@
 # Axvyn — agent handoff
 
-Read this before changing anything. It records where work stopped on **Mon 23 Nov 2026**
+Read this before changing anything. It records where work stopped on **Tue 24 Nov 2026**
 and exactly where to resume.
 
 ## What this is
@@ -23,8 +23,8 @@ The six tools, in the agreed order:
 
 1. Word to PDF — DOCX, max 10 MB, custom renderer, not Word-perfect
 2. **Image Compressor — DONE**
-3. **PDF to Images — NEXT**
-4. WEBP / AVIF to PNG
+3. **PDF to Images — DONE**
+4. **WEBP / AVIF to PNG — NEXT**
 5. Audio to MP3 — only after licence/codec audit
 6. Text to Voice — offline voice packs, 14-language verification
 
@@ -87,13 +87,12 @@ init script.
 
 ## Current state
 
-Stages 1 and 2 are complete, built, installed, tested on the real phone, committed and pushed.
-Working tree was clean before this handoff file was added.
+Stages 1–3 are complete, built, installed, tested on the real phone, committed and pushed.
 
 - `ed2e7c2` — foundation: theme, navigation, Home, History, Settings, six placeholders
 - `c2f9a64` — Stage 2 Image Compressor
-
-After committing this handoff, the repo must be pushed to `origin/main`.
+- `4b0fd4b` — agent handoff notes
+- Stage 3 commit — PDF to Images (see git log for hash after this session is committed)
 
 ## Stage 2 details — Image Compressor
 
@@ -152,6 +151,52 @@ Two test files remain in phone Downloads for inspection:
 
 No code change came out of testing.
 
+## Stage 3 details — PDF to Images
+
+Implemented files:
+
+```
+features/pdftoimage/
+├── PdfToImageState.kt          State, format enum, source/result models, formatPdfBytes()
+├── PdfRenderingEngine.kt       PdfRenderer-based one-page-at-a-time renderer
+├── PdfToImageRepository.kt     SAF/cache coordination, FileProvider URI
+├── PdfToImageViewModel.kt      UI state, validation, progress, cancel, save
+└── PdfToImageScreen.kt         Compose UI, OpenDocument/CreateDocument launchers
+```
+
+Behaviour:
+
+- Input: PDF via `ACTION_OPEN_DOCUMENT` (`application/pdf`).
+- Output: JPG or PNG, selected by the user.
+- Resolution: 150 DPI or 300 DPI.
+- Page selection: single page number, validated against page count.
+- Rendering uses Android's built-in `android.graphics.pdf.PdfRenderer`; one page is opened,
+  rendered to a bitmap, encoded, and the bitmap/page are closed before moving on.
+- Output is written to app-private cache, exposed through FileProvider for preview, and
+  copied to the SAF destination on "Save a copy". Temp file is deleted after save/discard.
+- Progress and cancellation use coroutines; `currentCoroutineContext().ensureActive()` is
+  checked during rendering. No fake progress, no online processing.
+
+### Stage 3 phone verification (24 Nov 2026)
+
+Verified on `RK8X700ZAGA` (SM-A155F, Android 17) with a pushed 2-page test PDF
+(`/sdcard/Download/axvyn-test.pdf`, 880 B):
+
+- Opened Home → PDF to Images.
+- Selected PDF: detected `axvyn-test.pdf`, 880 B, 2 pages.
+- Page 1, JPG, 150 DPI → 1275 × 1649, 22.8 KB, `image/jpeg`.
+- Saved to `/sdcard/Download/axvyn-page-1-1795522634784.jpg`; file existed with 22,763 bytes.
+- Result card cleared after save, confirming temp cleanup.
+- Page 2, PNG, 300 DPI → 2550 × 3299, 66.2 KB, `image/png`.
+- Saved to `/sdcard/Download/axvyn-page-2-1795522783267.png`; file existed with 66,163 bytes.
+- No Axvyn fatal exception observed in `logcat`.
+
+Test artifacts left on phone Downloads for inspection:
+
+- `axvyn-test.pdf` — source
+- `axvyn-page-1-1795522634784.jpg` — page 1 JPG output
+- `axvyn-page-2-1795522783267.png` — page 2 PNG output
+
 ## Layout
 
 ```
@@ -175,46 +220,45 @@ app/src/main/java/com/axvyn/app/
 │   └── theme/              Colour tokens and Material 3 themes
 └── features/
     ├── imagecompressor/    REAL ENGINE — Stage 2
+    ├── pdftoimage/         REAL ENGINE — Stage 3
     ├── wordtopdf/          placeholder
     ├── texttovoice/        placeholder
-    ├── imageconverter/     placeholder
-    ├── pdftoimage/         placeholder — Stage 3 target
+    ├── imageconverter/     placeholder — Stage 4 target
     └── audiotomp3/         placeholder
 ```
 
 ## Where to begin tomorrow
 
-**Start Stage 3: PDF to Images**, replacing
-`features/pdftoimage/PdfToImageScreen.kt`, `PdfToImageViewModel.kt` and `PdfToImageState.kt`.
+**Start Stage 4: WEBP / AVIF to PNG**, replacing
+`features/imageconverter/ImageConverterScreen.kt`, `ImageConverterViewModel.kt` and
+`ImageConverterState.kt`.
 
-Requirements for Stage 3:
+Requirements for Stage 4:
 
 1. Keep the offline-first rules: no `INTERNET`, no network SDK, no fake progress.
-2. Use Android's built-in `android.graphics.pdf.PdfRenderer` (API 21+, already available at
-   minSdk 26). Do not add a PDF library unless there is a concrete reason.
-3. Reuse `ACTION_OPEN_DOCUMENT` for the PDF and `ACTION_CREATE_DOCUMENT` for each rendered
-   image. Keep output in app-private cache until saved.
-4. Let the member choose JPG or PNG, page number and resolution/DPI. Decode one page at a
-   time; never render all pages into memory.
-5. Add `PdfRenderingEngine` and `PdfToImageRepository` under `features/pdftoimage/`.
+2. Input: WebP and AVIF via `ACTION_OPEN_DOCUMENT`. Output: PNG via `ACTION_CREATE_DOCUMENT`.
+3. Preserve dimensions and transparency. Decode one image at a time.
+4. AVIF support depends on device/API codec availability; detect unsupported AVIF cleanly and
+   show a clear message rather than crashing. Do not add a heavy third-party decoder unless
+   absolutely necessary and approved.
+5. Add `ImageConversionEngine` and `ImageConverterRepository` under `features/imageconverter/`.
    ViewModel owns validation, progress, cancellation and temp-file lifecycle.
-6. Show page count, selected page and output size before/after. Support cancellation.
-7. Build, install on the connected phone, test with a real multi-page PDF, then commit and
-   push. Update README roadmap and this AGENTS.md.
+6. Show source format, dimensions, original size and PNG output size. Support preview/save/cancel.
+7. Build, install on the connected phone, test with real WebP and (if supported) AVIF files,
+   then commit and push. Update README roadmap and this AGENTS.md.
 
 Useful reminder: the user explicitly wants the app installed on the connected phone after
 each stage. Check `adb devices` before assuming the cable is still attached.
 
 ## Git state at handoff
 
-When this file was created, `main` was clean at `c2f9a64`. This AGENTS.md must be the only
-new change in the next commit:
+After Stage 3 code + docs are committed, push `main` to
+`https://github.com/omarelghandour1993/axvyn-convert-tools` and verify with:
 
 ```powershell
-git add AGENTS.md
-git commit -m "Add Axvyn agent handoff notes"
-git push origin main
 git status --short
+git log -2 --oneline
+git ls-remote origin refs/heads/main
 ```
 
-After that, begin Stage 3 from a clean tree.
+`origin/main` must match local `HEAD`. Then begin Stage 4 from a clean tree.

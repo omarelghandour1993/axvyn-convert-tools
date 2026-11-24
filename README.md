@@ -1,9 +1,8 @@
 # Axvyn
 
-Axvyn is a native Android utility app for six offline file tools. The foundation
-and **Stage 2: Image Compressor** are complete: the UI navigates between all six
-tools, and the compressor has a real on-device engine. The other five tool screens
-remain placeholders.
+Axvyn is a native Android utility app for six offline file tools. The foundation,
+**Stage 2: Image Compressor** and **Stage 3: PDF to Images** are complete. The
+other four tool screens remain placeholders.
 
 ## Principles
 
@@ -56,7 +55,7 @@ added with the actual conversions, so the UI never owns processing code.
 | Image Compressor | JPEG, PNG, WebP | Quality, optional resize, before/after size |
 | Text to Voice | Up to 3,000 characters | Downloadable offline voice packs, MP3 export |
 | WEBP / AVIF to PNG | WebP, AVIF | Preserve dimensions and transparency |
-| PDF to Images | PDF | JPG/PNG, page selection, resolution choice |
+| PDF to Images | PDF | JPG/PNG, page selection, 150/300 DPI, one page at a time |
 | Audio to MP3 | M4A, WAV, FLAC | 320 kbps via a vetted local FFmpeg build |
 
 ## Dependencies
@@ -93,7 +92,7 @@ APK: `app/build/outputs/apk/debug/app-debug.apk`.
 
 1. ✅ Foundation — project, theme, navigation, home and placeholders.
 2. ✅ Image Compressor — real JPEG/PNG/WebP engine with quality, resize and target size.
-3. PDF to JPG / PNG.
+3. ✅ PDF to Images — PdfRenderer, JPG/PNG, page selection, 150/300 DPI, one page at a time.
 4. WEBP / AVIF to PNG (with AVIF fallback on older devices).
 5. Audio to MP3 (license and codec audit before adding FFmpeg).
 6. Word to PDF (DOCX parser + PDF renderer, including Arabic/RTL).
