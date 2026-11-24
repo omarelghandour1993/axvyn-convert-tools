@@ -94,7 +94,7 @@ Stages 1–5 are complete, built, installed, tested on the real phone, committed
 - `4b0fd4b` — agent handoff notes
 - `b3f6c72` — Stage 3 PDF to Images
 - `986d1fe` — Stage 4 WEBP / AVIF to PNG
-- Stage 5 commit — Audio to MP3 (see git log for hash after this session is committed)
+- `d2897ce` — Stage 5 Audio to MP3
 
 ## Stage 2 details — Image Compressor
 
