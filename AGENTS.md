@@ -95,7 +95,7 @@ Stages 1–6 are complete (per AGENTS stage order: Stage 6 = Text to Voice), bui
 - `b3f6c72` — Stage 3 PDF to Images
 - `986d1fe` — Stage 4 WEBP / AVIF to PNG
 - `d2897ce` — Stage 5 Audio to MP3
-- Stage 6 commit — Text to Voice (see git log for hash after this session is committed)
+- `407d140` — Stage 6 Text to Voice
 
 ## Stage 2 details — Image Compressor
 
