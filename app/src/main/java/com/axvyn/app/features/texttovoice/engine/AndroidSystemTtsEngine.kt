@@ -1,47 +1,36 @@
-package com.axvyn.app.features.texttovoice
+package com.axvyn.app.features.texttovoice.engine
 
 import android.content.Context
-import android.media.AudioFormat
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
 import com.axvyn.app.data.voicepacks.VoicePackCatalog
 import com.axvyn.app.features.audiotomp3.LameMp3Encoder
+import com.axvyn.app.features.texttovoice.model.TtsModelCapability
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.Locale
 import java.util.UUID
-import kotlin.coroutines.resume
-import kotlin.math.max
 
-data class TtsSynthesisRequest(
-    val text: String,
-    val voice: TtsVoiceOption,
-)
+class AndroidSystemTtsEngine(private val context: Context) : TtsEngine {
 
-data class TtsSynthesisOutcome(
-    val file: File,
-    val mp3Bytes: Long,
-    val durationMs: Long?,
-)
-
-class TextToVoiceEngine(private val context: Context) {
+    override val id: String = "android-system"
+    override val displayName: String = "Android system TTS"
+    override val capabilities: List<TtsModelCapability> = emptyList()
 
     private val engines = mutableMapOf<String, TextToSpeech>()
     private var defaultEnginePackage: String? = null
 
-    suspend fun initialize(): Boolean = withContext(Dispatchers.Main) {
+    override suspend fun initialize(): Boolean = withContext(Dispatchers.Main) {
         if (engines.isNotEmpty()) return@withContext true
         val defaultTts = initEngine(null) ?: return@withContext false
         val defaultPkg = runCatching { defaultTts.defaultEngine }.getOrNull()
@@ -49,7 +38,6 @@ class TextToVoiceEngine(private val context: Context) {
         val engineInfos = runCatching { defaultTts.engines }.getOrNull().orEmpty()
         val knownPkgs = listOf("com.samsung.SMT", "com.google.android.tts")
         val allPkgs = (engineInfos.map { it.name } + knownPkgs).distinct()
-        // Initialized engines: $allPkgs (default=$defaultPkg)
         allPkgs.forEach { pkg ->
             if (engines.containsKey(pkg)) return@forEach
             if (pkg == defaultPkg) {
@@ -86,11 +74,11 @@ class TextToVoiceEngine(private val context: Context) {
         engine
     }
 
-    fun stop() {
+    override fun stop() {
         engines.values.forEach { runCatching { it.stop() } }
     }
 
-    fun shutdown() {
+    override fun shutdown() {
         val list = engines.values.toList()
         engines.clear()
         list.forEach { tts ->
@@ -99,11 +87,10 @@ class TextToVoiceEngine(private val context: Context) {
         }
     }
 
-    fun availableVoices(): List<TtsVoiceOption> {
+    override fun availableVoices(): List<TtsVoiceOption> {
         val all = mutableListOf<TtsVoiceOption>()
         engines.forEach { (pkg, engine) ->
             val voices = runCatching { engine.voices }.getOrNull().orEmpty()
-            // Enumerate offline, installed voices for supported languages.
             voices.asSequence()
                 .filter { !it.isNetworkConnectionRequired }
                 .filter { !it.features.contains("notInstalled") }
@@ -113,7 +100,6 @@ class TextToVoiceEngine(private val context: Context) {
                 }
                 .forEach { all += it }
         }
-        // Fallback: some engines report language availability without exposing a Voice object.
         VoicePackCatalog.candidateLanguages.forEach { lang ->
             if (all.any { it.languageDisplay.equals(lang, ignoreCase = true) }) return@forEach
             val locale = localeForLanguage(lang) ?: return@forEach
@@ -125,22 +111,21 @@ class TextToVoiceEngine(private val context: Context) {
                         label = "$lang (Device voice)",
                         localeTag = locale.toLanguageTag(),
                         languageDisplay = lang,
+                        engineId = id,
                         enginePackage = pkg,
                         isOffline = true,
                         quality = 100,
                     )
-                    // Fallback locale-only voice option for this engine.
                 }
             }
         }
 
-        val deduped = all
+        return all
             .groupBy { "${it.languageDisplay}|${it.localeTag}|${it.label.lowercase()}" }
             .map { (_, group) ->
                 group.minByOrNull { voiceRank(it) } ?: group.first()
             }
             .sortedWith(compareBy<TtsVoiceOption> { it.languageDisplay }.thenBy { voiceRank(it) }.thenBy { it.label })
-        return deduped
     }
 
     private fun voiceRank(option: TtsVoiceOption): Int {
@@ -155,11 +140,11 @@ class TextToVoiceEngine(private val context: Context) {
         return (if (isLegacy) 20 else 0) + qualityPenalty + (if (isDefaultEngine) 0 else 1)
     }
 
-    fun availableLanguages(voices: List<TtsVoiceOption>): List<String> {
+    override fun availableLanguages(voices: List<TtsVoiceOption>): List<String> {
         return VoicePackCatalog.candidateLanguages
     }
 
-    suspend fun synthesizeToMp3(
+    override suspend fun synthesizeToMp3(
         request: TtsSynthesisRequest,
         outputFile: File,
         cacheDir: File,
@@ -183,8 +168,7 @@ class TextToVoiceEngine(private val context: Context) {
                 error("No offline voice is available for ${request.voice.languageDisplay} on this device.")
             }
         }
-        val chunkLimit = 1800
-        val chunks = splitText(text, chunkLimit)
+        val chunks = splitText(text, 1800)
         if (chunks.isEmpty()) error("Enter some text first.")
 
         val tempWavs = mutableListOf<File>()
@@ -209,7 +193,6 @@ class TextToVoiceEngine(private val context: Context) {
                         channels = pcm.channels
                         encoder = LameMp3Encoder(sampleRate, channels, 128)
                     } else if (pcm.sampleRate != sampleRate || pcm.channels != channels) {
-                        // Rare case: engine changes format between chunks. Convert naively by rejecting.
                         error("The TTS engine returned inconsistent audio format. Try a different voice.")
                     }
 
@@ -225,8 +208,7 @@ class TextToVoiceEngine(private val context: Context) {
                         totalPcmBytes += len
                     }
 
-                    val progress = ((index + 1).toFloat() / chunks.size.toFloat()).coerceIn(0f, 0.98f)
-                    onProgress(progress)
+                    onProgress(((index + 1).toFloat() / chunks.size.toFloat()).coerceIn(0f, 0.98f))
                 }
 
                 val enc = encoder ?: error("No audio was generated.")
@@ -241,11 +223,7 @@ class TextToVoiceEngine(private val context: Context) {
                 if (bytesPerSecond > 0) (totalPcmBytes * 1000L) / bytesPerSecond else null
             } else null
 
-            TtsSynthesisOutcome(
-                file = outputFile,
-                mp3Bytes = outputFile.length(),
-                durationMs = durationMs,
-            )
+            TtsSynthesisOutcome(file = outputFile, mp3Bytes = outputFile.length(), durationMs = durationMs)
         } catch (e: Exception) {
             outputFile.delete()
             throw e
@@ -344,6 +322,7 @@ class TextToVoiceEngine(private val context: Context) {
             label = label,
             localeTag = loc.toLanguageTag(),
             languageDisplay = language,
+            engineId = id,
             enginePackage = enginePackage,
             isOffline = !isNetworkConnectionRequired,
             quality = quality,

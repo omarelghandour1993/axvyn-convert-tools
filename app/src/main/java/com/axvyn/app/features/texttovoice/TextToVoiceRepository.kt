@@ -5,12 +5,18 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import com.axvyn.app.core.files.FileSaver
 import com.axvyn.app.core.storage.LocalStorageManager
+import com.axvyn.app.features.texttovoice.engine.AndroidSystemTtsEngine
+import com.axvyn.app.features.texttovoice.engine.TtsEngine
+import com.axvyn.app.features.texttovoice.engine.TtsSynthesisRequest
+import com.axvyn.app.features.texttovoice.engine.TtsVoiceOption
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class TextToVoiceRepository(context: Context) {
+class TextToVoiceRepository(
+    context: Context,
+    private val engine: TtsEngine = AndroidSystemTtsEngine(context.applicationContext),
+) {
     private val app = context.applicationContext
-    private val engine = TextToVoiceEngine(app)
     private val storage = LocalStorageManager(app)
 
     suspend fun initialize(): Boolean = engine.initialize()

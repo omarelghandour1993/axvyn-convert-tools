@@ -3,15 +3,10 @@ package com.axvyn.app.features.texttovoice
 import android.net.Uri
 import com.axvyn.app.core.processing.ProcessingState
 
-data class TtsVoiceOption(
-    val id: String,
-    val label: String,
-    val localeTag: String,
-    val languageDisplay: String,
-    val enginePackage: String?,
-    val isOffline: Boolean,
-    val quality: Int = 0,
-)
+// Compatibility aliases while the TTS architecture is modularized.
+typealias TtsVoiceOption = com.axvyn.app.features.texttovoice.engine.TtsVoiceOption
+typealias TtsSynthesisRequest = com.axvyn.app.features.texttovoice.engine.TtsSynthesisRequest
+typealias TtsSynthesisOutcome = com.axvyn.app.features.texttovoice.engine.TtsSynthesisOutcome
 
 data class TextToVoiceResult(
     val fileName: String,
