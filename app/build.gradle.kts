@@ -73,6 +73,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.kotlinx.coroutines.android)
+    // Audited offline neural TTS runtime (Apache-2.0). See docs/LEGAL-SHERPA-ONNX.md.
+    implementation(files("libs/sherpa-onnx-2.0.3.aar"))
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
