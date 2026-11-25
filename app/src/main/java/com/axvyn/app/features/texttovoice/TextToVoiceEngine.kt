@@ -38,54 +38,125 @@ data class TtsSynthesisOutcome(
 
 class TextToVoiceEngine(private val context: Context) {
 
-    private var tts: TextToSpeech? = null
+    private val engines = mutableMapOf<String, TextToSpeech>()
+    private var defaultEnginePackage: String? = null
 
     suspend fun initialize(): Boolean = withContext(Dispatchers.Main) {
-        if (tts != null) return@withContext true
-        val ready = CompletableDeferred<Boolean>()
-        val engine = TextToSpeech(context.applicationContext) { status ->
-            if (!ready.isCompleted) ready.complete(status == TextToSpeech.SUCCESS)
+        if (engines.isNotEmpty()) return@withContext true
+        val defaultTts = initEngine(null) ?: return@withContext false
+        val defaultPkg = runCatching { defaultTts.defaultEngine }.getOrNull()
+        defaultEnginePackage = defaultPkg
+        val engineInfos = runCatching { defaultTts.engines }.getOrNull().orEmpty()
+        val knownPkgs = listOf("com.samsung.SMT", "com.google.android.tts")
+        val allPkgs = (engineInfos.map { it.name } + knownPkgs).distinct()
+        // Initialized engines: $allPkgs (default=$defaultPkg)
+        allPkgs.forEach { pkg ->
+            if (engines.containsKey(pkg)) return@forEach
+            if (pkg == defaultPkg) {
+                engines[pkg] = defaultTts
+            } else {
+                initEngine(pkg)?.let { engines[pkg] = it }
+            }
         }
-        tts = engine
+        if (defaultPkg != null && !engines.containsKey(defaultPkg)) {
+            engines[defaultPkg] = defaultTts
+        }
+        if (engines.isEmpty()) engines["default"] = defaultTts
+        engines.isNotEmpty()
+    }
+
+    private suspend fun initEngine(enginePackage: String?): TextToSpeech? = withContext(Dispatchers.Main) {
+        val ready = CompletableDeferred<Boolean>()
+        val engine = if (enginePackage == null) {
+            TextToSpeech(context.applicationContext) { status ->
+                if (!ready.isCompleted) ready.complete(status == TextToSpeech.SUCCESS)
+            }
+        } else {
+            TextToSpeech(context.applicationContext, { status ->
+                if (!ready.isCompleted) ready.complete(status == TextToSpeech.SUCCESS)
+            }, enginePackage)
+        }
         val ok = withTimeoutOrNull(5_000) { ready.await() } == true
         if (!ok) {
             runCatching { engine.shutdown() }
-            tts = null
+            return@withContext null
         }
-        ok
+        runCatching { engine.setSpeechRate(1.0f) }
+        runCatching { engine.setPitch(1.0f) }
+        engine
     }
 
     fun stop() {
-        runCatching { tts?.stop() }
+        engines.values.forEach { runCatching { it.stop() } }
     }
 
     fun shutdown() {
-        val engine = tts
-        tts = null
-        runCatching { engine?.stop() }
-        runCatching { engine?.shutdown() }
+        val list = engines.values.toList()
+        engines.clear()
+        list.forEach { tts ->
+            runCatching { tts.stop() }
+            runCatching { tts.shutdown() }
+        }
     }
 
     fun availableVoices(): List<TtsVoiceOption> {
-        val engine = tts ?: return emptyList()
-        val voices = runCatching { engine.voices }.getOrNull().orEmpty()
-        return voices
-            .asSequence()
-            .filter { !it.isNetworkConnectionRequired }
-            .filter { !it.features.contains("notInstalled") }
-            .mapNotNull { it.toOption() }
-            .filter { option ->
-                VoicePackCatalog.candidateLanguages.any { it.equals(option.languageDisplay, ignoreCase = true) }
+        val all = mutableListOf<TtsVoiceOption>()
+        engines.forEach { (pkg, engine) ->
+            val voices = runCatching { engine.voices }.getOrNull().orEmpty()
+            // Enumerate offline, installed voices for supported languages.
+            voices.asSequence()
+                .filter { !it.isNetworkConnectionRequired }
+                .filter { !it.features.contains("notInstalled") }
+                .mapNotNull { it.toOption(pkg) }
+                .filter { option ->
+                    VoicePackCatalog.candidateLanguages.any { it.equals(option.languageDisplay, ignoreCase = true) }
+                }
+                .forEach { all += it }
+        }
+        // Fallback: some engines report language availability without exposing a Voice object.
+        VoicePackCatalog.candidateLanguages.forEach { lang ->
+            if (all.any { it.languageDisplay.equals(lang, ignoreCase = true) }) return@forEach
+            val locale = localeForLanguage(lang) ?: return@forEach
+            engines.forEach { (pkg, engine) ->
+                val avail = runCatching { engine.isLanguageAvailable(locale) }.getOrDefault(TextToSpeech.LANG_NOT_SUPPORTED)
+                if (avail >= TextToSpeech.LANG_AVAILABLE) {
+                    all += TtsVoiceOption(
+                        id = "lang-${locale.toLanguageTag()}-$pkg",
+                        label = "$lang (Device voice)",
+                        localeTag = locale.toLanguageTag(),
+                        languageDisplay = lang,
+                        enginePackage = pkg,
+                        isOffline = true,
+                        quality = 100,
+                    )
+                    // Fallback locale-only voice option for this engine.
+                }
             }
-            .distinctBy { it.id }
-            .sortedWith(compareBy<TtsVoiceOption> { it.languageDisplay }.thenBy { it.label })
-            .toList()
+        }
+
+        val deduped = all
+            .groupBy { "${it.languageDisplay}|${it.localeTag}|${it.label.lowercase()}" }
+            .map { (_, group) ->
+                group.minByOrNull { voiceRank(it) } ?: group.first()
+            }
+            .sortedWith(compareBy<TtsVoiceOption> { it.languageDisplay }.thenBy { voiceRank(it) }.thenBy { it.label })
+        return deduped
+    }
+
+    private fun voiceRank(option: TtsVoiceOption): Int {
+        val isLegacy = option.label.contains("legacy", ignoreCase = true) || option.id.contains("-language")
+        val isDefaultEngine = option.enginePackage == defaultEnginePackage
+        val qualityPenalty = when {
+            option.quality >= 400 -> 0
+            option.quality >= 300 -> 1
+            option.quality >= 200 -> 2
+            else -> 3
+        }
+        return (if (isLegacy) 20 else 0) + qualityPenalty + (if (isDefaultEngine) 0 else 1)
     }
 
     fun availableLanguages(voices: List<TtsVoiceOption>): List<String> {
-        val fromVoices = voices.map { it.languageDisplay }.distinct()
-        return if (fromVoices.isNotEmpty()) fromVoices
-        else VoicePackCatalog.candidateLanguages
+        return VoicePackCatalog.candidateLanguages
     }
 
     suspend fun synthesizeToMp3(
@@ -94,14 +165,24 @@ class TextToVoiceEngine(private val context: Context) {
         cacheDir: File,
         onProgress: (Float) -> Unit,
     ): TtsSynthesisOutcome = withContext(Dispatchers.IO) {
-        val engine = tts ?: error("Text-to-speech engine is not ready.")
+        val enginePkg = request.voice.enginePackage ?: defaultEnginePackage
+        val engine = enginePkg?.let { engines[it] } ?: engines.values.firstOrNull()
+            ?: error("Text-to-speech engine is not ready.")
         val text = request.text.trim()
         if (text.isEmpty()) error("Enter some text first.")
         if (text.length > VoicePackCatalog.MAX_CHARACTERS) {
             error("Text exceeds the ${VoicePackCatalog.MAX_CHARACTERS} character limit.")
         }
 
-        val voice = resolveVoice(engine, request.voice) ?: error("Selected voice is not available on this device.")
+        val voice = resolveVoice(engine, request.voice)
+        val locale = localeForLanguage(request.voice.languageDisplay)
+            ?: Locale.forLanguageTag(request.voice.localeTag)
+        if (voice == null) {
+            val avail = runCatching { engine.isLanguageAvailable(locale) }.getOrDefault(TextToSpeech.LANG_NOT_SUPPORTED)
+            if (avail < TextToSpeech.LANG_AVAILABLE) {
+                error("No offline voice is available for ${request.voice.languageDisplay} on this device.")
+            }
+        }
         val chunkLimit = 1800
         val chunks = splitText(text, chunkLimit)
         if (chunks.isEmpty()) error("Enter some text first.")
@@ -119,7 +200,7 @@ class TextToVoiceEngine(private val context: Context) {
                     currentCoroutineContext().ensureActive()
                     val wavFile = File(cacheDir, "axvyn-tts-${UUID.randomUUID()}.wav")
                     tempWavs += wavFile
-                    synthesizeChunk(engine, voice, chunk, wavFile)
+                    synthesizeChunk(engine, voice, locale, chunk, wavFile)
 
                     currentCoroutineContext().ensureActive()
                     val pcm = readWavPcm16(wavFile)
@@ -178,78 +259,94 @@ class TextToVoiceEngine(private val context: Context) {
         val voices = runCatching { engine.voices }.getOrNull().orEmpty()
         voices.firstOrNull { it.name == option.id && !it.isNetworkConnectionRequired }?.let { return it }
         val locale = Locale.forLanguageTag(option.localeTag)
-        val match = voices.firstOrNull {
-            !it.isNetworkConnectionRequired && it.locale.language == locale.language &&
-                (locale.country.isBlank() || it.locale.country == locale.country)
+        return voices.firstOrNull {
+            !it.isNetworkConnectionRequired && !it.features.contains("notInstalled") &&
+                it.locale.language.equals(locale.language, ignoreCase = true) &&
+                (locale.country.isBlank() || it.locale.country.equals(locale.country, ignoreCase = true))
         }
-        return match
     }
 
-    private suspend fun synthesizeChunk(engine: TextToSpeech, voice: Voice, text: String, outFile: File) =
-        withContext(Dispatchers.Main) {
-            val utteranceId = "axvyn-${UUID.randomUUID()}"
-            val done = CompletableDeferred<Unit>()
+    private suspend fun synthesizeChunk(
+        engine: TextToSpeech,
+        voice: Voice?,
+        locale: Locale,
+        text: String,
+        outFile: File,
+    ) = withContext(Dispatchers.Main) {
+        val utteranceId = "axvyn-${UUID.randomUUID()}"
+        val done = CompletableDeferred<Unit>()
 
-            engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                override fun onStart(utteranceId: String?) {}
-                override fun onDone(id: String?) {
-                    if (id == utteranceId && !done.isCompleted) done.complete(Unit)
+        engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {}
+            override fun onDone(id: String?) {
+                if (id == utteranceId && !done.isCompleted) done.complete(Unit)
+            }
+
+            @Deprecated("Deprecated in Java")
+            override fun onError(id: String?) {
+                if (id == utteranceId && !done.isCompleted) {
+                    done.completeExceptionally(IllegalStateException("TTS synthesis failed."))
                 }
+            }
 
-                @Deprecated("Deprecated in Java")
-                override fun onError(id: String?) {
-                    if (id == utteranceId && !done.isCompleted) {
-                        done.completeExceptionally(IllegalStateException("TTS synthesis failed."))
-                    }
+            override fun onError(id: String?, errorCode: Int) {
+                if (id == utteranceId && !done.isCompleted) {
+                    done.completeExceptionally(IllegalStateException("TTS synthesis failed (code $errorCode)."))
                 }
+            }
+        })
 
-                override fun onError(id: String?, errorCode: Int) {
-                    if (id == utteranceId && !done.isCompleted) {
-                        done.completeExceptionally(IllegalStateException("TTS synthesis failed (code $errorCode)."))
-                    }
-                }
-            })
-
+        if (voice != null) {
             runCatching { engine.voice = voice }
             runCatching { engine.language = voice.locale }
+        } else {
+            runCatching { engine.language = locale }
+        }
+        runCatching { engine.setSpeechRate(1.0f) }
+        runCatching { engine.setPitch(1.0f) }
 
-            val params = Bundle().apply {
-                putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
-            }
-            val result = engine.synthesizeToFile(text, params, outFile, utteranceId)
-            if (result != TextToSpeech.SUCCESS) {
-                throw IllegalStateException("Could not start TTS synthesis.")
-            }
-
-            withTimeoutOrNull(120_000) { done.await() }
-                ?: throw IllegalStateException("TTS synthesis timed out.")
-            if (!outFile.exists() || outFile.length() <= 44L) {
-                throw IllegalStateException("The TTS engine produced no audio for this text.")
-            }
+        val params = Bundle().apply {
+            putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
+        }
+        val result = engine.synthesizeToFile(text, params, outFile, utteranceId)
+        if (result != TextToSpeech.SUCCESS) {
+            throw IllegalStateException("Could not start TTS synthesis.")
         }
 
-    private fun Voice.toOption(): TtsVoiceOption? {
+        withTimeoutOrNull(120_000) { done.await() }
+            ?: throw IllegalStateException("TTS synthesis timed out.")
+        if (!outFile.exists() || outFile.length() <= 44L) {
+            throw IllegalStateException("The TTS engine produced no audio for this text.")
+        }
+    }
+
+    private fun Voice.toOption(enginePackage: String): TtsVoiceOption? {
         val loc = locale ?: return null
         val language = displayLanguage(loc) ?: return null
+        val isLegacy = features.contains("legacySetLanguageVoice") || name?.contains("-language") == true
         val label = buildString {
             append(language)
             val country = loc.displayCountry.takeIf { it.isNotBlank() }
-            val variant = loc.displayVariant.takeIf { it.isNotBlank() }
-            val detail = listOfNotNull(country, variant).joinToString(", ")
-            if (detail.isNotBlank()) append(" ($detail)")
-            val voiceName = name?.substringAfter('#', name)?.replace('_', ' ')?.trim()
-            if (!voiceName.isNullOrBlank() && !voiceName.equals(language, ignoreCase = true)) {
+            if (!country.isNullOrBlank()) append(" ($country)")
+            val voiceName = name
+                ?.substringAfterLast('#')
+                ?.replace('_', ' ')
+                ?.replace('-', ' ')
+                ?.trim()
+            if (!voiceName.isNullOrBlank() && !voiceName.equals(language, ignoreCase = true) && !isLegacy) {
                 append(" · ")
-                append(voiceName.take(28))
+                append(voiceName.take(32))
             }
+            if (isLegacy) append(" · Standard")
         }
         return TtsVoiceOption(
             id = name ?: "${loc.toLanguageTag()}-${UUID.randomUUID()}",
             label = label,
             localeTag = loc.toLanguageTag(),
             languageDisplay = language,
-            enginePackage = null,
+            enginePackage = enginePackage,
             isOffline = !isNetworkConnectionRequired,
+            quality = quality,
         )
     }
 
@@ -274,6 +371,24 @@ class TextToVoiceEngine(private val context: Context) {
             tag.startsWith("cmn") || tag.startsWith("yue") -> "Chinese"
             else -> null
         }
+    }
+
+    private fun localeForLanguage(language: String): Locale? = when (language.lowercase(Locale.ROOT)) {
+        "arabic" -> Locale.forLanguageTag("ar")
+        "chinese" -> Locale.forLanguageTag("zh")
+        "dutch" -> Locale.forLanguageTag("nl")
+        "english" -> Locale.forLanguageTag("en-US")
+        "french" -> Locale.forLanguageTag("fr")
+        "german" -> Locale.forLanguageTag("de")
+        "italian" -> Locale.forLanguageTag("it")
+        "japanese" -> Locale.forLanguageTag("ja")
+        "korean" -> Locale.forLanguageTag("ko")
+        "polish" -> Locale.forLanguageTag("pl")
+        "portuguese" -> Locale.forLanguageTag("pt")
+        "russian" -> Locale.forLanguageTag("ru")
+        "spanish" -> Locale.forLanguageTag("es")
+        "turkish" -> Locale.forLanguageTag("tr")
+        else -> null
     }
 
     private data class WavPcm(val sampleRate: Int, val channels: Int, val pcmData: ByteArray)

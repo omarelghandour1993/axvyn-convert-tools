@@ -69,7 +69,15 @@ class TextToVoiceViewModel(private val repository: TextToVoiceRepository) : View
     fun onLanguageChange(language: String) {
         val voices = _state.value.availableVoices
         val voice = voices.firstOrNull { it.languageDisplay.equals(language, ignoreCase = true) }
-        _state.update { it.copy(selectedLanguage = language, selectedVoiceId = voice?.id, message = null) }
+        _state.update {
+            it.copy(
+                selectedLanguage = language,
+                selectedVoiceId = voice?.id,
+                message = if (voice == null) {
+                    "No offline voice is installed for $language on this device. Install a $language TTS voice in system settings to use it."
+                } else null,
+            )
+        }
     }
 
     fun onVoiceChange(voiceId: String) {

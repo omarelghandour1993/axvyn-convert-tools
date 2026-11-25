@@ -310,7 +310,9 @@ Behaviour:
 - Input: up to 3,000 characters of text (hard-limited in ViewModel).
 - Output: MP3 via `ACTION_CREATE_DOCUMENT` (`audio/mpeg`), encoded with vendored LAME 3.100 at 128 kbps CBR.
 - Engine: Android on-device `TextToSpeech` (`synthesizeToFile` to cache WAV), then parse WAV PCM16/PCM8/float32 and encode through existing `LameMp3Encoder`. No `INTERNET` permission; no network TTS.
-- Voice selection: runtime enumeration of on-device TTS voices; only offline voices (`!isNetworkConnectionRequired`, not `notInstalled`) matching the 14 candidate languages are offered. Language/voice availability is explicit in UI.
+- Multi-engine: initializes the default TTS engine plus discovered engines (including Samsung SMT / Google TTS when present) and merges offline voice options.
+- Voice quality: forces `speechRate=1.0f` and `pitch=1.0f`; prefers higher-quality, non-legacy offline voices; falls back to locale-only synthesis when an engine reports a language available but exposes no concrete `Voice` object.
+- 14-language UI: all 14 candidate languages are always shown. Languages without an on-device/offline voice are marked unavailable and generation is blocked with a clear message. Actual availability depends on device/engine voice data.
 - Text chunking: splits long text into ~1800-char chunks (sentence/paragraph boundaries) and encodes sequentially into one MP3.
 - Progress/cancellation: coroutine cancellation checks between chunks/encode blocks; `TextToSpeech.stop()` on cancel; temp WAV/MP3 files deleted on save/discard/cancel/failure/teardown.
 - No fake progress and no online processing.
@@ -319,14 +321,12 @@ Behaviour:
 
 Candidate languages (from `VoicePackCatalog`): Arabic, Chinese, Dutch, English, French, German, Italian, Japanese, Korean, Polish, Portuguese, Russian, Spanish, Turkish.
 
-Phone verification (25 Nov 2026, `RK8X700ZAGA`, Samsung SM-A155F, Android 17, default Google TTS engine): runtime voice scan found 14 filtered offline voice options covering all 14 candidate languages. Actual availability is device/engine dependent; the UI reports only voices present on the device.
+The app UI exposes all 14 languages. Runtime verification uses on-device TTS engine voice enumeration and `isLanguageAvailable`; only offline/non-network voices are used. If a language is not installed on the device, the UI marks it unavailable and does not claim it can generate audio.
 
-### Stage 6 phone verification (25 Nov 2026)
+### Stage 6 phone verification (25 Nov 2026, RK8X700ZAGA / SM-A155F / Android 17)
 
-- Opened Text to Voice; language/voice selectors populated from on-device voices.
-- Entered 65-char English test text; generated MP3: **69.5 KB, 0:04, audio/mpeg**, voice "English (United States) · en-US-language".
-- Saved to `/sdcard/Download/axvyn-tts-1795603130297.mp3` (69,504 bytes). Result cleared after save.
-- No Axvyn fatal exception observed in `logcat`.
+- Initial implementation: English generation produced **MP3 69.5 KB, 0:04, audio/mpeg** and saved to `/sdcard/Download/axvyn-tts-1795603130297.mp3`; result cleared after save.
+- Bugfix verification: language dropdown shows all 14 candidate languages. English generation after fix produced **MP3 69.9 KB, 0:04, audio/mpeg** for 61 chars using a non-legacy local voice (`en us x iob local`), with normal speech rate/pitch (`1.0/1.0`). No Axvyn fatal exception observed in `logcat`.
 
 ## Layout
 

@@ -10,6 +10,7 @@ data class TtsVoiceOption(
     val languageDisplay: String,
     val enginePackage: String?,
     val isOffline: Boolean,
+    val quality: Int = 0,
 )
 
 data class TextToVoiceResult(
