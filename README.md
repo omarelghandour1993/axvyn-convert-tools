@@ -53,7 +53,7 @@ added with the actual conversions, so the UI never owns processing code.
 | --- | --- | --- |
 | Word to PDF | `.docx`, max 10 MB | Custom renderer; not Word-perfect |
 | Image Compressor | JPEG, PNG, WebP | Quality, optional resize, before/after size |
-| Text to Voice | Up to 3,000 characters | Downloadable offline voice packs, MP3 export |
+| Text to Voice | Up to 3,000 characters | On-device Android TTS voices, WAV→MP3 export via LAME, 14-language verification |
 | WEBP / AVIF to PNG | WebP, AVIF | PNG output, preserves dimensions/transparency, clear unsupported-AVIF error |
 | PDF to Images | PDF | JPG/PNG, page selection, 150/300 DPI, one page at a time |
 | Audio to MP3 | M4A, WAV, FLAC | 128/192/256/320 kbps MP3 via Android MediaCodec decode + vendored LAME (LGPL v2) |
@@ -101,6 +101,6 @@ Audio to MP3 uses vendored [LAME 3.100](https://lame.sourceforge.io/) for MP3 en
 3. ✅ PDF to Images — PdfRenderer, JPG/PNG, page selection, 150/300 DPI, one page at a time.
 4. ✅ WEBP / AVIF to PNG — ImageDecoder/BitmapFactory decode, PNG output, dimensions/transparency preserved, clear unsupported-AVIF error.
 5. ✅ Audio to MP3 — MediaExtractor/MediaCodec decode + vendored LAME 3.100 (LGPL v2) encode, 128/192/256/320 kbps, no FFmpeg.
-6. Word to PDF (DOCX parser + PDF renderer, including Arabic/RTL).
-7. Text to Voice (engine selection, 14-language verification, offline packs).
+6. ✅ Text to Voice — on-device Android TTS synthesis, WAV→MP3 export via LAME, 14-language availability verification, no INTERNET.
+7. Word to PDF (DOCX parser + PDF renderer, including Arabic/RTL).
 8. Final testing: airplane mode, interruptions, large files, low storage, ABI coverage.

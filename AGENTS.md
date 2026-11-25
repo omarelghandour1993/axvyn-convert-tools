@@ -21,12 +21,12 @@ project from Swapply and lives at `C:\Users\Administrator\Documents\Axvyn`.
 
 The six tools, in the agreed order:
 
-1. Word to PDF — DOCX, max 10 MB, custom renderer, not Word-perfect
+1. **Word to PDF — NEXT** (DOCX, max 10 MB, custom renderer, not Word-perfect)
 2. **Image Compressor — DONE**
 3. **PDF to Images — DONE**
 4. **WEBP / AVIF to PNG — DONE**
 5. **Audio to MP3 — DONE**
-6. **Text to Voice — NEXT** (offline voice packs, 14-language verification)
+6. **Text to Voice — DONE**
 
 Do not start a later engine until the current stage is approved.
 
@@ -87,7 +87,7 @@ init script.
 
 ## Current state
 
-Stages 1–5 are complete, built, installed, tested on the real phone, committed and pushed.
+Stages 1–6 are complete (per AGENTS stage order: Stage 6 = Text to Voice), built, installed, tested on the real phone, committed and pushed.
 
 - `ed2e7c2` — foundation: theme, navigation, Home, History, Settings, six placeholders
 - `c2f9a64` — Stage 2 Image Compressor
@@ -95,6 +95,7 @@ Stages 1–5 are complete, built, installed, tested on the real phone, committed
 - `b3f6c72` — Stage 3 PDF to Images
 - `986d1fe` — Stage 4 WEBP / AVIF to PNG
 - `d2897ce` — Stage 5 Audio to MP3
+- Stage 6 commit — Text to Voice (see git log for hash after this session is committed)
 
 ## Stage 2 details — Image Compressor
 
@@ -291,6 +292,42 @@ Verified on `RK8X700ZAGA` (SM-A155F, Android 17) with ffmpeg-generated 2s test t
 - **FLAC** (`axvyn-test.flac`, 39.3 KB, 0:02): 320 kbps → **MP3 82.5 KB, 0:02, audio/mpeg**.
 - No Axvyn fatal exception observed in `logcat`.
 
+## Stage 6 details — Text to Voice
+
+Implemented files:
+
+```
+features/texttovoice/
+├── TextToVoiceState.kt         State, voice option/result models
+├── TextToVoiceEngine.kt        Android TTS synthesis + WAV PCM parsing + LAME MP3 encode
+├── TextToVoiceRepository.kt    SAF/cache coordination, FileProvider URI
+├── TextToVoiceViewModel.kt     UI state, validation, progress, cancel, save
+└── TextToVoiceScreen.kt        Compose UI, language/voice selectors, SAF launchers
+```
+
+Behaviour:
+
+- Input: up to 3,000 characters of text (hard-limited in ViewModel).
+- Output: MP3 via `ACTION_CREATE_DOCUMENT` (`audio/mpeg`), encoded with vendored LAME 3.100 at 128 kbps CBR.
+- Engine: Android on-device `TextToSpeech` (`synthesizeToFile` to cache WAV), then parse WAV PCM16/PCM8/float32 and encode through existing `LameMp3Encoder`. No `INTERNET` permission; no network TTS.
+- Voice selection: runtime enumeration of on-device TTS voices; only offline voices (`!isNetworkConnectionRequired`, not `notInstalled`) matching the 14 candidate languages are offered. Language/voice availability is explicit in UI.
+- Text chunking: splits long text into ~1800-char chunks (sentence/paragraph boundaries) and encodes sequentially into one MP3.
+- Progress/cancellation: coroutine cancellation checks between chunks/encode blocks; `TextToSpeech.stop()` on cancel; temp WAV/MP3 files deleted on save/discard/cancel/failure/teardown.
+- No fake progress and no online processing.
+
+### 14-language verification
+
+Candidate languages (from `VoicePackCatalog`): Arabic, Chinese, Dutch, English, French, German, Italian, Japanese, Korean, Polish, Portuguese, Russian, Spanish, Turkish.
+
+Phone verification (25 Nov 2026, `RK8X700ZAGA`, Samsung SM-A155F, Android 17, default Google TTS engine): runtime voice scan found 14 filtered offline voice options covering all 14 candidate languages. Actual availability is device/engine dependent; the UI reports only voices present on the device.
+
+### Stage 6 phone verification (25 Nov 2026)
+
+- Opened Text to Voice; language/voice selectors populated from on-device voices.
+- Entered 65-char English test text; generated MP3: **69.5 KB, 0:04, audio/mpeg**, voice "English (United States) · en-US-language".
+- Saved to `/sdcard/Download/axvyn-tts-1795603130297.mp3` (69,504 bytes). Result cleared after save.
+- No Axvyn fatal exception observed in `logcat`.
+
 ## Layout
 
 ```
@@ -304,7 +341,7 @@ app/src/main/java/com/axvyn/app/
 │   └── workers/            Reserved WorkManager conversion worker
 ├── data/
 │   ├── preferences/        Device-local theme preference
-│   └── voicepacks/         Voice-pack contract and empty catalog
+│   └── voicepacks/         Voice-pack contract and candidate catalog
 ├── navigation/             Routes and NavHost
 ├── ui/
 │   ├── components/         Scaffolds, tool cards, shared sections
@@ -317,31 +354,28 @@ app/src/main/java/com/axvyn/app/
     ├── pdftoimage/         REAL ENGINE — Stage 3
     ├── imageconverter/     REAL ENGINE — Stage 4
     ├── audiotomp3/         REAL ENGINE — Stage 5
-    ├── wordtopdf/          placeholder
-    └── texttovoice/        placeholder — Stage 6 target
+    ├── texttovoice/        REAL ENGINE — Stage 6
+    └── wordtopdf/          placeholder — Stage 7 target (next in AGENTS order)
 ```
 
 ## Where to begin tomorrow
 
-**Start Stage 6: Text to Voice** (per the agreed AGENTS order).
+**Start Stage 1/7 in AGENTS order: Word to PDF** (next unimplemented stage).
 
 Before implementing:
 
-1. Audit offline TTS options for Android. Prefer on-device engines/voice packs; do not add `INTERNET` for conversion. Voice-pack downloads, if any, must be explicitly user-initiated and outside the conversion path (and require a careful permission/product decision).
-2. Keep the offline-first rules for conversion: no backend, no uploads, no analytics, no fake progress.
-3. Input: up to 3,000 characters of text. Output: MP3 export.
-4. Support 14-language verification as specified in project goals; be explicit about what the device/engine actually supports.
-5. Add `TextToVoiceEngine` and `TextToVoiceRepository` under `features/texttovoice/`.
-   ViewModel owns validation, progress, cancellation and temp-file lifecycle.
-6. Build, install on the connected phone, test with real text/voice output, then commit and push.
-   Update README roadmap and this AGENTS.md.
+1. Audit offline DOCX parsing/rendering options for Android. No cloud conversion, no `INTERNET`. Keep APK size and LGPL/commercial license constraints in mind.
+2. Input: `.docx` via `ACTION_OPEN_DOCUMENT`, max 10 MB. Output: PDF via `ACTION_CREATE_DOCUMENT`. Custom renderer; not Word-perfect — be explicit in UI.
+3. Must handle Arabic/RTL text reasonably (project goal). Test on device with Arabic sample.
+4. Add `WordToPdfEngine` and `WordToPdfRepository` under `features/wordtopdf/`. ViewModel owns validation, progress, cancellation and temp-file lifecycle.
+5. Build, install on the connected phone, test with real DOCX files, then commit and push. Update README roadmap and this AGENTS.md.
 
 Useful reminder: the user explicitly wants the app installed on the connected phone after
 each stage. Check `adb devices` before assuming the cable is still attached.
 
 ## Git state at handoff
 
-After Stage 5 code + docs are committed, push `main` to
+After Stage 6 code + docs are committed, push `main` to
 `https://github.com/omarelghandour1993/axvyn-convert-tools` and verify with:
 
 ```powershell
@@ -350,4 +384,4 @@ git log -2 --oneline
 git ls-remote origin refs/heads/main
 ```
 
-`origin/main` must match local `HEAD`. Then begin Stage 6 from a clean tree.
+`origin/main` must match local `HEAD`. Then begin Word to PDF from a clean tree.
