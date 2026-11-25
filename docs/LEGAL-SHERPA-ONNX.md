@@ -1,15 +1,15 @@
 # sherpa-onnx (prebuilt Android AAR)
 
-Axvyn uses [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) as the planned offline neural TTS runtime (Stage 6.2 spike). This document records the audited binary used for integration.
+Axvyn uses [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) as the offline neural TTS runtime for Piper VITS voice packs. This document records the audited binary used for integration.
 
 ## Artifact
 
-- **File**: `app/libs/sherpa-onnx-2.0.3.aar`
-- **Version**: `v2.0.3`
-- **Source release**: https://github.com/k2-fsa/sherpa-onnx/releases/tag/v2.0.3
-- **Asset**: `sherpa-onnx-2.0.3.aar`
-- **SHA-256**: `4C766E2E74C9D33D595338C21FE3B305C73BA45D47E96A235675C33142A2EC50`
-- **Size**: 52,411,426 bytes
+- **File**: `app/libs/sherpa-onnx-1.12.20.aar`
+- **Version**: `v1.12.20`
+- **Source release**: https://github.com/k2-fsa/sherpa-onnx/releases/tag/v1.12.20
+- **Asset**: `sherpa-onnx-1.12.20.aar`
+- **SHA-256**: `E3905B1258B577D8D374DB798618602CEAAFF5805CBF9B356AB25267CD98144D`
+- **Size**: 38,013,991 bytes
 
 ## License
 
@@ -20,6 +20,7 @@ The AAR bundles ONNX Runtime native libraries (`libonnxruntime.so`) and sherpa-o
 
 ## Integration notes
 
-- Added as a local audited AAR dependency: `implementation(files("libs/sherpa-onnx-2.0.3.aar"))`.
-- No `INTERNET` permission added for this spike. Model downloads/inference network policy is handled separately.
+- Added as a local audited AAR dependency: `implementation(files("libs/sherpa-onnx-1.12.20.aar"))`.
+- v1.12.20 is used (instead of v2.0.3) because it provides the simpler Piper VITS path with built-in espeak-ng `dataDir` support and no external phonemizer requirement.
+- No `INTERNET` permission is added until the voice-pack download phase; downloads use narrow HTTPS access only.
 - Voice model packs have **separate licenses** and must be verified per model before catalog inclusion/download.
