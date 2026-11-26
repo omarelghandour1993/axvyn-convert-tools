@@ -19,14 +19,13 @@ project from Swapply and lives at `C:\Users\Administrator\Documents\Axvyn`.
 - One image/file at a time. No batch processing in the current stages.
 - Light/dark theme follows the system by default; Settings can override and persists locally.
 
-The six tools, in the agreed order:
+The tools, in the agreed order:
 
 1. **Word to PDF — NEXT** (DOCX, max 10 MB, custom renderer, not Word-perfect)
 2. **Image Compressor — DONE**
 3. **PDF to Images — DONE**
 4. **WEBP / AVIF to PNG — DONE**
 5. **Audio to MP3 — DONE**
-6. **Text to Voice — DONE**
 
 Do not start a later engine until the current stage is approved.
 
@@ -87,15 +86,14 @@ init script.
 
 ## Current state
 
-Stages 1–6 are complete (per AGENTS stage order: Stage 6 = Text to Voice), built, installed, tested on the real phone, committed and pushed.
+Stages 1–5 in the current tool set are complete, built, installed, tested on the real phone, committed and pushed. The legacy Text-to-Speech system was later removed from the codebase.
 
-- `ed2e7c2` — foundation: theme, navigation, Home, History, Settings, six placeholders
+- `ed2e7c2` — foundation: theme, navigation, Home, History, Settings, placeholders
 - `c2f9a64` — Stage 2 Image Compressor
 - `4b0fd4b` — agent handoff notes
 - `b3f6c72` — Stage 3 PDF to Images
 - `986d1fe` — Stage 4 WEBP / AVIF to PNG
 - `d2897ce` — Stage 5 Audio to MP3
-- `407d140` — Stage 6 Text to Voice
 
 ## Stage 2 details — Image Compressor
 
@@ -292,42 +290,6 @@ Verified on `RK8X700ZAGA` (SM-A155F, Android 17) with ffmpeg-generated 2s test t
 - **FLAC** (`axvyn-test.flac`, 39.3 KB, 0:02): 320 kbps → **MP3 82.5 KB, 0:02, audio/mpeg**.
 - No Axvyn fatal exception observed in `logcat`.
 
-## Stage 6 details — Text to Voice
-
-Implemented files:
-
-```
-features/texttovoice/
-├── TextToVoiceState.kt         State, voice option/result models
-├── TextToVoiceEngine.kt        Android TTS synthesis + WAV PCM parsing + LAME MP3 encode
-├── TextToVoiceRepository.kt    SAF/cache coordination, FileProvider URI
-├── TextToVoiceViewModel.kt     UI state, validation, progress, cancel, save
-└── TextToVoiceScreen.kt        Compose UI, language/voice selectors, SAF launchers
-```
-
-Behaviour:
-
-- Input: up to 3,000 characters of text (hard-limited in ViewModel).
-- Output: MP3 via `ACTION_CREATE_DOCUMENT` (`audio/mpeg`), encoded with vendored LAME 3.100 at 128 kbps CBR.
-- Engine: Android on-device `TextToSpeech` (`synthesizeToFile` to cache WAV), then parse WAV PCM16/PCM8/float32 and encode through existing `LameMp3Encoder`. No `INTERNET` permission; no network TTS.
-- Multi-engine: initializes the default TTS engine plus discovered engines (including Samsung SMT / Google TTS when present) and merges offline voice options.
-- Voice quality: forces `speechRate=1.0f` and `pitch=1.0f`; prefers higher-quality, non-legacy offline voices; falls back to locale-only synthesis when an engine reports a language available but exposes no concrete `Voice` object.
-- 14-language UI: all 14 candidate languages are always shown. Languages without an on-device/offline voice are marked unavailable and generation is blocked with a clear message. Actual availability depends on device/engine voice data.
-- Text chunking: splits long text into ~1800-char chunks (sentence/paragraph boundaries) and encodes sequentially into one MP3.
-- Progress/cancellation: coroutine cancellation checks between chunks/encode blocks; `TextToSpeech.stop()` on cancel; temp WAV/MP3 files deleted on save/discard/cancel/failure/teardown.
-- No fake progress and no online processing.
-
-### 14-language verification
-
-Candidate languages (from `VoicePackCatalog`): Arabic, Chinese, Dutch, English, French, German, Italian, Japanese, Korean, Polish, Portuguese, Russian, Spanish, Turkish.
-
-The app UI exposes all 14 languages. Runtime verification uses on-device TTS engine voice enumeration and `isLanguageAvailable`; only offline/non-network voices are used. If a language is not installed on the device, the UI marks it unavailable and does not claim it can generate audio.
-
-### Stage 6 phone verification (25 Nov 2026, RK8X700ZAGA / SM-A155F / Android 17)
-
-- Initial implementation: English generation produced **MP3 69.5 KB, 0:04, audio/mpeg** and saved to `/sdcard/Download/axvyn-tts-1795603130297.mp3`; result cleared after save.
-- Bugfix verification: language dropdown shows all 14 candidate languages. English generation after fix produced **MP3 69.9 KB, 0:04, audio/mpeg** for 61 chars using a non-legacy local voice (`en us x iob local`), with normal speech rate/pitch (`1.0/1.0`). No Axvyn fatal exception observed in `logcat`.
-
 ## Layout
 
 ```
@@ -340,8 +302,7 @@ app/src/main/java/com/axvyn/app/
 │   ├── storage/            LocalStorageManager
 │   └── workers/            Reserved WorkManager conversion worker
 ├── data/
-│   ├── preferences/        Device-local theme preference
-│   └── voicepacks/         Voice-pack contract and candidate catalog
+│   └── preferences/        Device-local theme preference
 ├── navigation/             Routes and NavHost
 ├── ui/
 │   ├── components/         Scaffolds, tool cards, shared sections
@@ -354,8 +315,7 @@ app/src/main/java/com/axvyn/app/
     ├── pdftoimage/         REAL ENGINE — Stage 3
     ├── imageconverter/     REAL ENGINE — Stage 4
     ├── audiotomp3/         REAL ENGINE — Stage 5
-    ├── texttovoice/        REAL ENGINE — Stage 6
-    └── wordtopdf/          placeholder — Stage 7 target (next in AGENTS order)
+    └── wordtopdf/          placeholder — next in AGENTS order
 ```
 
 ## Where to begin tomorrow

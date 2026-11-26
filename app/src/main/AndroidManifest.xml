@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Used only for explicit user-initiated voice pack downloads. -->
-    <uses-permission android:name="android.permission.INTERNET" />
-
     <application
         android:name=".AxvynApplication"
         android:allowBackup="true"

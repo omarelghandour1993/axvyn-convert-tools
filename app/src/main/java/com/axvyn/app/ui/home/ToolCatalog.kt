@@ -5,7 +5,6 @@ import androidx.compose.material.icons.filled.Audiotrack
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.Transform
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.axvyn.app.navigation.Routes
@@ -15,7 +14,6 @@ import com.axvyn.app.ui.theme.AccentConvert
 import com.axvyn.app.ui.theme.AccentDocument
 import com.axvyn.app.ui.theme.AccentImage
 import com.axvyn.app.ui.theme.AccentPdf
-import com.axvyn.app.ui.theme.AccentVoice
 
 val ToolCatalog: List<ToolCardModel> = listOf(
     ToolCardModel(
@@ -31,13 +29,6 @@ val ToolCatalog: List<ToolCardModel> = listOf(
         icon = Icons.Default.Image,
         accent = AccentImage,
         route = Routes.IMAGE_COMPRESSOR,
-    ),
-    ToolCardModel(
-        title = "Text to Voice",
-        description = "Offline speech, 14 languages",
-        icon = Icons.Default.RecordVoiceOver,
-        accent = AccentVoice,
-        route = Routes.TEXT_TO_VOICE,
     ),
     ToolCardModel(
         title = "WEBP / AVIF to PNG",

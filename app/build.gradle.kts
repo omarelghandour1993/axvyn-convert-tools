@@ -15,8 +15,7 @@ android {
         versionName = "1.0.0"
 
         ndk {
-            // Keep APK practical for real devices; A15 test target is arm64-v8a.
-            abiFilters += listOf("arm64-v8a")
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
         }
 
         externalNativeBuild {
@@ -74,10 +73,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.kotlinx.coroutines.android)
-    // Audited offline neural TTS runtime (Apache-2.0). See docs/LEGAL-SHERPA-ONNX.md.
-    implementation(files("libs/sherpa-onnx-1.12.20.aar"))
-    // Pure-Java tar.bz2 extraction for downloaded voice packs (Apache-2.0).
-    implementation("org.apache.commons:commons-compress:1.27.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
