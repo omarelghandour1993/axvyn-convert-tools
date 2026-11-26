@@ -1,7 +1,7 @@
 # Axvyn
 
 Axvyn is a native Android utility app for offline file tools. The foundation,
-**Word to PDF**, **PowerPoint to PDF**, **Excel to PDF**, **Image Compressor**, **PDF to Images**, **WEBP / AVIF to PNG**
+**Word to PDF**, **PowerPoint to PDF**, **Excel to PDF**, **Image to PDF**, **Image Compressor**, **PDF to Images**, **WEBP / AVIF to PNG**
 and **Audio to MP3** are implemented.
 
 ## Principles
@@ -51,6 +51,7 @@ added with the actual conversions, so the UI never owns processing code.
 | Word to PDF | `.docx`, max 10 MB | Custom offline renderer; not Word-perfect; basic paragraphs/headings/tables/images/RTL |
 | PowerPoint to PDF | `.pptx`, max 10 MB | Best-effort offline renderer; legacy `.ppt` not supported yet; not PowerPoint-perfect |
 | Excel to PDF | `.xlsx`, max 10 MB | Best-effort offline renderer; legacy `.xls` not supported yet; not Excel-perfect; large sheets may be truncated for display |
+| Image to PDF | JPG, PNG, WebP, 10 MB per image | Combine multiple images into one PDF; each image on its own page, aspect ratio preserved |
 | Image Compressor | JPEG, PNG, WebP | Quality, optional resize, before/after size |
 | WEBP / AVIF to PNG | WebP, AVIF | PNG output, preserves dimensions/transparency, clear unsupported-AVIF error |
 | PDF to Images | PDF | JPG/PNG, page selection, 150/300 DPI, one page at a time |
@@ -102,4 +103,5 @@ Audio to MP3 uses vendored [LAME 3.100](https://lame.sourceforge.io/) for MP3 en
 6. ✅ Word to PDF — custom offline DOCX parser + PdfDocument renderer (not Word-perfect), basic paragraphs/headings/tables/images/RTL, 10 MB limit.
 7. ✅ PowerPoint to PDF — best-effort offline PPTX parser + PdfDocument renderer (not PowerPoint-perfect); legacy `.ppt` not supported yet; 10 MB limit.
 8. ✅ Excel to PDF — best-effort offline XLSX parser + PdfDocument renderer (not Excel-perfect); legacy `.xls` not supported yet; large sheets may be truncated for display; 10 MB limit.
-9. Final testing: airplane mode, interruptions, large files, low storage, ABI coverage.
+9. ✅ Image to PDF — combine multiple JPG/PNG/WebP images into one PDF on-device; each image on its own page, aspect ratio preserved; 10 MB per image.
+10. Final testing: airplane mode, interruptions, large files, low storage, ABI coverage.

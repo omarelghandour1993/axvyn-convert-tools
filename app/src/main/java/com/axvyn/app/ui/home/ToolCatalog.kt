@@ -16,6 +16,7 @@ import com.axvyn.app.ui.theme.AccentConvert
 import com.axvyn.app.ui.theme.AccentDocument
 import com.axvyn.app.ui.theme.AccentExcel
 import com.axvyn.app.ui.theme.AccentImage
+import com.axvyn.app.ui.theme.AccentImagePdf
 import com.axvyn.app.ui.theme.AccentPdf
 import com.axvyn.app.ui.theme.AccentPowerPoint
 
@@ -40,6 +41,13 @@ val ToolCatalog: List<ToolCardModel> = listOf(
         icon = Icons.Default.TableChart,
         accent = AccentExcel,
         route = Routes.EXCEL_TO_PDF,
+    ),
+    ToolCardModel(
+        title = "Image to PDF",
+        description = "JPG, PNG, WebP up to 10 MB each",
+        icon = Icons.Default.PictureAsPdf,
+        accent = AccentImagePdf,
+        route = Routes.IMAGE_TO_PDF,
     ),
     ToolCardModel(
         title = "Image Compressor",
