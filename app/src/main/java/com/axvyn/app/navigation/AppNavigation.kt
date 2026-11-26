@@ -14,6 +14,7 @@ import com.axvyn.app.data.preferences.ThemePreferences
 import com.axvyn.app.features.audiotomp3.AudioToMp3Screen
 import com.axvyn.app.features.imagecompressor.ImageCompressorScreen
 import com.axvyn.app.features.imageconverter.ImageConverterScreen
+import com.axvyn.app.features.exceltopdf.ExcelToPdfScreen
 import com.axvyn.app.features.pdftoimage.PdfToImageScreen
 import com.axvyn.app.features.powerpointtopdf.PowerPointToPdfScreen
 import com.axvyn.app.features.wordtopdf.WordToPdfScreen
@@ -71,6 +72,9 @@ private fun AxvynNavHost(
         }
         composable(Routes.POWERPOINT_TO_PDF) {
             PowerPointToPdfScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.EXCEL_TO_PDF) {
+            ExcelToPdfScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.IMAGE_COMPRESSOR) {
             ImageCompressorScreen(onBack = { navController.popBackStack() })

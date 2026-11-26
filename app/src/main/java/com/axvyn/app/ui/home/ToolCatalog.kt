@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Slideshow
+import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.Transform
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.axvyn.app.navigation.Routes
@@ -13,6 +14,7 @@ import com.axvyn.app.ui.components.ToolCardModel
 import com.axvyn.app.ui.theme.AccentAudio
 import com.axvyn.app.ui.theme.AccentConvert
 import com.axvyn.app.ui.theme.AccentDocument
+import com.axvyn.app.ui.theme.AccentExcel
 import com.axvyn.app.ui.theme.AccentImage
 import com.axvyn.app.ui.theme.AccentPdf
 import com.axvyn.app.ui.theme.AccentPowerPoint
@@ -31,6 +33,13 @@ val ToolCatalog: List<ToolCardModel> = listOf(
         icon = Icons.Default.Slideshow,
         accent = AccentPowerPoint,
         route = Routes.POWERPOINT_TO_PDF,
+    ),
+    ToolCardModel(
+        title = "Excel to PDF",
+        description = "XLSX up to 10 MB",
+        icon = Icons.Default.TableChart,
+        accent = AccentExcel,
+        route = Routes.EXCEL_TO_PDF,
     ),
     ToolCardModel(
         title = "Image Compressor",

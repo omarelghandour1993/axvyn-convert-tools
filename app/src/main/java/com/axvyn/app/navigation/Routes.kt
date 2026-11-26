@@ -7,6 +7,7 @@ object Routes {
 
     const val WORD_TO_PDF = "tool/word-to-pdf"
     const val POWERPOINT_TO_PDF = "tool/powerpoint-to-pdf"
+    const val EXCEL_TO_PDF = "tool/excel-to-pdf"
     const val IMAGE_COMPRESSOR = "tool/image-compressor"
     const val IMAGE_CONVERTER = "tool/image-converter"
     const val PDF_TO_IMAGE = "tool/pdf-to-image"
