@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.axvyn.app.navigation.Routes
 import com.axvyn.app.ui.components.ToolCardModel
 import com.axvyn.app.ui.theme.AccentAudio
+import com.axvyn.app.ui.theme.AccentCompress
 import com.axvyn.app.ui.theme.AccentConvert
 import com.axvyn.app.ui.theme.AccentDocument
 import com.axvyn.app.ui.theme.AccentExcel
@@ -48,6 +49,13 @@ val ToolCatalog: List<ToolCardModel> = listOf(
         icon = Icons.Default.PictureAsPdf,
         accent = AccentImagePdf,
         route = Routes.IMAGE_TO_PDF,
+    ),
+    ToolCardModel(
+        title = "Compress PDF",
+        description = "PDF up to 10 MB",
+        icon = Icons.Default.PictureAsPdf,
+        accent = AccentCompress,
+        route = Routes.COMPRESS_PDF,
     ),
     ToolCardModel(
         title = "Image Compressor",

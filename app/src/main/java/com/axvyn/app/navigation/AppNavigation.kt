@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.axvyn.app.data.preferences.ThemePreferences
 import com.axvyn.app.features.audiotomp3.AudioToMp3Screen
+import com.axvyn.app.features.compresspdf.CompressPdfScreen
 import com.axvyn.app.features.exceltopdf.ExcelToPdfScreen
 import com.axvyn.app.features.imagecompressor.ImageCompressorScreen
 import com.axvyn.app.features.imageconverter.ImageConverterScreen
@@ -79,6 +80,9 @@ private fun AxvynNavHost(
         }
         composable(Routes.IMAGE_TO_PDF) {
             ImageToPdfScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.COMPRESS_PDF) {
+            CompressPdfScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.IMAGE_COMPRESSOR) {
             ImageCompressorScreen(onBack = { navController.popBackStack() })
