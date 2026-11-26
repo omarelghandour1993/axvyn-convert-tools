@@ -22,10 +22,11 @@ project from Swapply and lives at `C:\Users\Administrator\Documents\Axvyn`.
 The tools, in the agreed order:
 
 1. **Word to PDF — DONE** (DOCX, max 10 MB, custom renderer, not Word-perfect)
-2. **Image Compressor — DONE**
-3. **PDF to Images — DONE**
-4. **WEBP / AVIF to PNG — DONE**
-5. **Audio to MP3 — DONE**
+2. **PowerPoint to PDF — DONE** (PPTX, max 10 MB, best-effort custom renderer, not PowerPoint-perfect; legacy `.ppt` not supported yet)
+3. **Image Compressor — DONE**
+4. **PDF to Images — DONE**
+5. **WEBP / AVIF to PNG — DONE**
+6. **Audio to MP3 — DONE**
 
 Do not start a later engine until the current stage is approved.
 
@@ -86,7 +87,7 @@ init script.
 
 ## Current state
 
-Stages 1–5 in the current tool set are complete, built, installed, tested on the real phone, committed and pushed. The legacy Text-to-Speech system was later removed from the codebase. Word to PDF has now been implemented with a custom offline DOCX→PDF renderer, built and installed on the test device; further real-device validation is still recommended.
+Stages 1–5 in the current tool set are complete, built, installed, tested on the real phone, committed and pushed. The legacy Text-to-Speech system was later removed from the codebase. Word to PDF and PowerPoint to PDF have been implemented with custom offline renderers, built and installed on the test device; further real-device validation is still recommended. PowerPoint to PDF currently supports PPTX best-effort only; legacy `.ppt` is rejected with a clear message.
 
 - `ed2e7c2` — foundation: theme, navigation, Home, History, Settings, placeholders
 - `c2f9a64` — Stage 2 Image Compressor
@@ -315,15 +316,17 @@ app/src/main/java/com/axvyn/app/
     ├── pdftoimage/         REAL ENGINE — Stage 3
     ├── imageconverter/     REAL ENGINE — Stage 4
     ├── audiotomp3/         REAL ENGINE — Stage 5
+    ├── powerpointtopdf/    REAL ENGINE — PowerPoint to PDF (PPTX best-effort)
     └── wordtopdf/          REAL ENGINE — Word to PDF
 ```
 
 ## Where to go next
 
-Word to PDF is implemented (custom offline DOCX→PDF renderer, not Word-perfect; built and installed on `RK8X700ZAGA`). It still needs real-device validation.
+Word to PDF and PowerPoint to PDF are implemented (custom offline renderers, not perfect; built and installed on `RK8X700ZAGA`). Both still need real-device validation.
 
-1. Test Word to PDF on the connected phone with real `.docx` files: simple text, headings/tables/images, Arabic/RTL, 10 MB boundary, invalid/oversized files, cancel mid-conversion, save/reopen, airplane mode.
-2. Fix any renderer/layout issues found on device. Keep everything offline and document compromises.
-3. Continue final testing from README: airplane mode, interruptions, large files, low storage, ABI coverage.
+1. Test PowerPoint to PDF on the connected phone with real `.pptx` files: simple/multi-slide, images, tables, different slide sizes, >10 MB rejection, legacy `.ppt` rejection, corrupt file, cancel, save/open/share, airplane mode.
+2. Test Word to PDF on the connected phone with real `.docx` files: simple text, headings/tables/images, Arabic/RTL, 10 MB boundary, invalid/oversized files, cancel mid-conversion, save/reopen, airplane mode.
+3. Fix any renderer/layout issues found on device. Keep everything offline and document compromises.
+4. Continue roadmap stages (Excel to PDF, Image to PDF, Compress PDF, Merge PDF) per approved plan, then final testing.
 
 Useful reminder: the user explicitly wants the app installed on the connected phone after each stage. Check `adb devices` before assuming the cable is still attached.

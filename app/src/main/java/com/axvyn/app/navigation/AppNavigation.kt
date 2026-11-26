@@ -15,6 +15,7 @@ import com.axvyn.app.features.audiotomp3.AudioToMp3Screen
 import com.axvyn.app.features.imagecompressor.ImageCompressorScreen
 import com.axvyn.app.features.imageconverter.ImageConverterScreen
 import com.axvyn.app.features.pdftoimage.PdfToImageScreen
+import com.axvyn.app.features.powerpointtopdf.PowerPointToPdfScreen
 import com.axvyn.app.features.wordtopdf.WordToPdfScreen
 import com.axvyn.app.ui.history.HistoryScreen
 import com.axvyn.app.ui.home.HomeScreen
@@ -67,6 +68,9 @@ private fun AxvynNavHost(
         }
         composable(Routes.WORD_TO_PDF) {
             WordToPdfScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.POWERPOINT_TO_PDF) {
+            PowerPointToPdfScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.IMAGE_COMPRESSOR) {
             ImageCompressorScreen(onBack = { navController.popBackStack() })

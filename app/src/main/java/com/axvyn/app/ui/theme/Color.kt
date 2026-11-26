@@ -28,6 +28,7 @@ val DarkBorder = Color(0xFF263244)
 
 // Per-tool accents are shared by both palettes; they are only used as tints.
 val AccentDocument = Color(0xFF4F46E5)
+val AccentPowerPoint = Color(0xFFD24726)
 val AccentImage = Color(0xFF0891B2)
 val AccentConvert = Color(0xFF059669)
 val AccentPdf = Color(0xFFEA580C)

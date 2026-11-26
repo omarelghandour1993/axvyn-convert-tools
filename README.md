@@ -1,7 +1,7 @@
 # Axvyn
 
 Axvyn is a native Android utility app for offline file tools. The foundation,
-**Word to PDF**, **Image Compressor**, **PDF to Images**, **WEBP / AVIF to PNG**
+**Word to PDF**, **PowerPoint to PDF**, **Image Compressor**, **PDF to Images**, **WEBP / AVIF to PNG**
 and **Audio to MP3** are implemented.
 
 ## Principles
@@ -49,6 +49,7 @@ added with the actual conversions, so the UI never owns processing code.
 | Tool | Input | Output / notes |
 | --- | --- | --- |
 | Word to PDF | `.docx`, max 10 MB | Custom offline renderer; not Word-perfect; basic paragraphs/headings/tables/images/RTL |
+| PowerPoint to PDF | `.pptx`, max 10 MB | Best-effort offline renderer; legacy `.ppt` not supported yet; not PowerPoint-perfect |
 | Image Compressor | JPEG, PNG, WebP | Quality, optional resize, before/after size |
 | WEBP / AVIF to PNG | WebP, AVIF | PNG output, preserves dimensions/transparency, clear unsupported-AVIF error |
 | PDF to Images | PDF | JPG/PNG, page selection, 150/300 DPI, one page at a time |
@@ -98,4 +99,5 @@ Audio to MP3 uses vendored [LAME 3.100](https://lame.sourceforge.io/) for MP3 en
 4. ✅ WEBP / AVIF to PNG — ImageDecoder/BitmapFactory decode, PNG output, dimensions/transparency preserved, clear unsupported-AVIF error.
 5. ✅ Audio to MP3 — MediaExtractor/MediaCodec decode + vendored LAME 3.100 (LGPL v2) encode, 128/192/256/320 kbps, no FFmpeg.
 6. ✅ Word to PDF — custom offline DOCX parser + PdfDocument renderer (not Word-perfect), basic paragraphs/headings/tables/images/RTL, 10 MB limit.
-7. Final testing: airplane mode, interruptions, large files, low storage, ABI coverage.
+7. ✅ PowerPoint to PDF — best-effort offline PPTX parser + PdfDocument renderer (not PowerPoint-perfect); legacy `.ppt` not supported yet; 10 MB limit.
+8. Final testing: airplane mode, interruptions, large files, low storage, ABI coverage.
