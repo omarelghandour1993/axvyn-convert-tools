@@ -21,7 +21,7 @@ project from Swapply and lives at `C:\Users\Administrator\Documents\Axvyn`.
 
 The tools, in the agreed order:
 
-1. **Word to PDF — NEXT** (DOCX, max 10 MB, custom renderer, not Word-perfect)
+1. **Word to PDF — DONE** (DOCX, max 10 MB, custom renderer, not Word-perfect)
 2. **Image Compressor — DONE**
 3. **PDF to Images — DONE**
 4. **WEBP / AVIF to PNG — DONE**
@@ -86,7 +86,7 @@ init script.
 
 ## Current state
 
-Stages 1–5 in the current tool set are complete, built, installed, tested on the real phone, committed and pushed. The legacy Text-to-Speech system was later removed from the codebase.
+Stages 1–5 in the current tool set are complete, built, installed, tested on the real phone, committed and pushed. The legacy Text-to-Speech system was later removed from the codebase. Word to PDF has now been implemented with a custom offline DOCX→PDF renderer, built and installed on the test device; further real-device validation is still recommended.
 
 - `ed2e7c2` — foundation: theme, navigation, Home, History, Settings, placeholders
 - `c2f9a64` — Stage 2 Image Compressor
@@ -315,33 +315,15 @@ app/src/main/java/com/axvyn/app/
     ├── pdftoimage/         REAL ENGINE — Stage 3
     ├── imageconverter/     REAL ENGINE — Stage 4
     ├── audiotomp3/         REAL ENGINE — Stage 5
-    └── wordtopdf/          placeholder — next in AGENTS order
+    └── wordtopdf/          REAL ENGINE — Word to PDF
 ```
 
-## Where to begin tomorrow
+## Where to go next
 
-**Start Stage 1/7 in AGENTS order: Word to PDF** (next unimplemented stage).
+Word to PDF is implemented (custom offline DOCX→PDF renderer, not Word-perfect; built and installed on `RK8X700ZAGA`). It still needs real-device validation.
 
-Before implementing:
+1. Test Word to PDF on the connected phone with real `.docx` files: simple text, headings/tables/images, Arabic/RTL, 10 MB boundary, invalid/oversized files, cancel mid-conversion, save/reopen, airplane mode.
+2. Fix any renderer/layout issues found on device. Keep everything offline and document compromises.
+3. Continue final testing from README: airplane mode, interruptions, large files, low storage, ABI coverage.
 
-1. Audit offline DOCX parsing/rendering options for Android. No cloud conversion, no `INTERNET`. Keep APK size and LGPL/commercial license constraints in mind.
-2. Input: `.docx` via `ACTION_OPEN_DOCUMENT`, max 10 MB. Output: PDF via `ACTION_CREATE_DOCUMENT`. Custom renderer; not Word-perfect — be explicit in UI.
-3. Must handle Arabic/RTL text reasonably (project goal). Test on device with Arabic sample.
-4. Add `WordToPdfEngine` and `WordToPdfRepository` under `features/wordtopdf/`. ViewModel owns validation, progress, cancellation and temp-file lifecycle.
-5. Build, install on the connected phone, test with real DOCX files, then commit and push. Update README roadmap and this AGENTS.md.
-
-Useful reminder: the user explicitly wants the app installed on the connected phone after
-each stage. Check `adb devices` before assuming the cable is still attached.
-
-## Git state at handoff
-
-After Stage 6 code + docs are committed, push `main` to
-`https://github.com/omarelghandour1993/axvyn-convert-tools` and verify with:
-
-```powershell
-git status --short
-git log -2 --oneline
-git ls-remote origin refs/heads/main
-```
-
-`origin/main` must match local `HEAD`. Then begin Word to PDF from a clean tree.
+Useful reminder: the user explicitly wants the app installed on the connected phone after each stage. Check `adb devices` before assuming the cable is still attached.
