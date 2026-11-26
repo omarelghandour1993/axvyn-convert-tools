@@ -32,8 +32,8 @@ class ImageToPdfEngine {
         val size = querySize(context, uri)
         val mime = context.contentResolver.getType(uri)
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-            ?: error("Cannot open the selected file")
+        val stream = context.contentResolver.openInputStream(uri) ?: error("Cannot open the selected file")
+        stream.use { BitmapFactory.decodeStream(it, null, bounds) }
         val w = bounds.outWidth
         val h = bounds.outHeight
         if (w <= 0 || h <= 0) error("The selected file is not a supported image")
@@ -55,8 +55,8 @@ class ImageToPdfEngine {
             uris.forEachIndexed { index, uri ->
                 if (isCancelled()) throw Cancellation()
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
-                    ?: error("Cannot open the selected image")
+                val input = context.contentResolver.openInputStream(uri) ?: error("Cannot open the selected image")
+                input.use { BitmapFactory.decodeStream(it, null, bounds) }
                 val srcW = bounds.outWidth
                 val srcH = bounds.outHeight
                 if (srcW <= 0 || srcH <= 0) error("One of the selected files is not a supported image")

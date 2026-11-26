@@ -32,8 +32,8 @@ class ImageToPdfViewModel(private val repository: ImageToPdfRepository) : ViewMo
             val inspected = mutableListOf<ImageSourceInfo>()
             for (uri in uris) {
                 val result = runCatching { repository.inspect(uri) }
-                val info = result.getOrElse {
-                    _state.update { s -> s.copy(sources = emptyList(), message = "Could not read one of the selected images. Please choose supported image files.") }
+                val info = result.getOrElse { e ->
+                    _state.update { s -> s.copy(sources = emptyList(), message = e.message ?: "Could not read one of the selected images. Please choose supported image files.") }
                     return@launch
                 }
                 if (info.sizeBytes > MAX_BYTES) {
