@@ -26,10 +26,11 @@ The tools, in the agreed order:
 3. **Excel to PDF — DONE** (XLSX, max 10 MB, best-effort custom renderer, not Excel-perfect; legacy `.xls` not supported yet; large sheets may be truncated for display)
 4. **Image to PDF — DONE** (JPG/PNG/WebP, 10 MB per image, multiple images, on-device PdfDocument; each image on its own page, aspect ratio preserved)
 5. **Compress PDF — DONE** (PDF, max 10 MB, on-device re-render compression via PdfRenderer+PdfDocument; image-based output, text selection/vector sharpness may be reduced)
-6. **Image Compressor — DONE**
-7. **PDF to Images — DONE**
-8. **WEBP / AVIF to PNG — DONE**
-9. **Audio to MP3 — DONE**
+6. **Merge PDF — DONE** (PDF, 10 MB per file, on-device merge via PdfBox-Android; preserves page content)
+7. **Image Compressor — DONE**
+8. **PDF to Images — DONE**
+9. **WEBP / AVIF to PNG — DONE**
+10. **Audio to MP3 — DONE**
 
 Do not start a later engine until the current stage is approved.
 
@@ -90,7 +91,7 @@ init script.
 
 ## Current state
 
-Stages 1–5 in the current tool set are complete, built, installed, tested on the real phone, committed and pushed. The legacy Text-to-Speech system was later removed from the codebase. Word to PDF, PowerPoint to PDF, Excel to PDF, Image to PDF, and Compress PDF have been implemented, built and installed on the test device; further real-device validation is still recommended. PowerPoint to PDF supports PPTX best-effort only; legacy `.ppt` is rejected with a clear message. Excel to PDF supports XLSX best-effort only; legacy `.xls` is rejected with a clear message; large sheets may be truncated for display. Image to PDF supports multiple JPG/PNG/WebP images, 10 MB per image, on-device. Compress PDF is on-device re-render compression (image-based output; text selection/vector sharpness may be reduced).
+Stages 1–5 in the current tool set are complete, built, installed, tested on the real phone, committed and pushed. The legacy Text-to-Speech system was later removed from the codebase. Word to PDF, PowerPoint to PDF, Excel to PDF, Image to PDF, Compress PDF, and Merge PDF have been implemented, built and installed on the test device; further real-device validation is still recommended. PowerPoint to PDF supports PPTX best-effort only; legacy `.ppt` is rejected with a clear message. Excel to PDF supports XLSX best-effort only; legacy `.xls` is rejected with a clear message; large sheets may be truncated for display. Image to PDF supports multiple JPG/PNG/WebP images, 10 MB per image, on-device. Compress PDF is on-device re-render compression (image-based output; text selection/vector sharpness may be reduced). Merge PDF uses PdfBox-Android for on-device merging and preserves page content.
 
 - `ed2e7c2` — foundation: theme, navigation, Home, History, Settings, placeholders
 - `c2f9a64` — Stage 2 Image Compressor
@@ -320,6 +321,7 @@ app/src/main/java/com/axvyn/app/
     ├── imageconverter/     REAL ENGINE — Stage 4
     ├── audiotomp3/         REAL ENGINE — Stage 5
     ├── compresspdf/        REAL ENGINE — Compress PDF (re-render, image-based)
+    ├── mergepdf/           REAL ENGINE — Merge PDF (PdfBox-Android)
     ├── exceltopdf/         REAL ENGINE — Excel to PDF (XLSX best-effort)
     ├── imagetopdf/         REAL ENGINE — Image to PDF (multi-image)
     ├── powerpointtopdf/    REAL ENGINE — PowerPoint to PDF (PPTX best-effort)
@@ -328,14 +330,15 @@ app/src/main/java/com/axvyn/app/
 
 ## Where to go next
 
-Word to PDF, PowerPoint to PDF, Excel to PDF, Image to PDF, and Compress PDF are implemented (custom offline renderers where applicable; built and installed on `RK8X700ZAGA`). They still need real-device validation.
+Word to PDF, PowerPoint to PDF, Excel to PDF, Image to PDF, Compress PDF, and Merge PDF are implemented (custom offline renderers where applicable; built and installed on `RK8X700ZAGA`). They still need real-device validation.
 
-1. Test Compress PDF on the connected phone with real PDFs: small/large, text-heavy/image-heavy, >10 MB rejection, invalid file, cancel, save/open/share, verify size reduction and disclosed quality tradeoff, airplane mode.
-2. Test Image to PDF on the connected phone with real images: single/multiple JPG/PNG/WebP, mixed sizes/orientations, >10 MB per-image rejection, unsupported file, cancel, save/open/share, airplane mode.
-3. Test Excel to PDF on the connected phone with real `.xlsx` files: simple/multi-sheet, wide tables, formulas/values, Arabic/RTL text, >10 MB rejection, legacy `.xls` rejection, corrupt file, cancel, save/open/share, airplane mode.
-4. Test PowerPoint to PDF on the connected phone with real `.pptx` files: simple/multi-slide, images, tables, different slide sizes, >10 MB rejection, legacy `.ppt` rejection, corrupt file, cancel, save/open/share, airplane mode.
-5. Test Word to PDF on the connected phone with real `.docx` files: simple text, headings/tables/images, Arabic/RTL, 10 MB boundary, invalid/oversized files, cancel mid-conversion, save/reopen, airplane mode.
-6. Fix any renderer/layout issues found on device. Keep everything offline and document compromises.
-7. Continue roadmap stages (Merge PDF) per approved plan, then final testing.
+1. Test Merge PDF on the connected phone with real PDFs: merge 2+ files, verify page order/content preserved, >10 MB per-file rejection, invalid file, cancel, save/open/share, airplane mode.
+2. Test Compress PDF on the connected phone with real PDFs: small/large, text-heavy/image-heavy, >10 MB rejection, invalid file, cancel, save/open/share, verify size reduction and disclosed quality tradeoff, airplane mode.
+3. Test Image to PDF on the connected phone with real images: single/multiple JPG/PNG/WebP, mixed sizes/orientations, >10 MB per-image rejection, unsupported file, cancel, save/open/share, airplane mode.
+4. Test Excel to PDF on the connected phone with real `.xlsx` files: simple/multi-sheet, wide tables, formulas/values, Arabic/RTL text, >10 MB rejection, legacy `.xls` rejection, corrupt file, cancel, save/open/share, airplane mode.
+5. Test PowerPoint to PDF on the connected phone with real `.pptx` files: simple/multi-slide, images, tables, different slide sizes, >10 MB rejection, legacy `.ppt` rejection, corrupt file, cancel, save/open/share, airplane mode.
+6. Test Word to PDF on the connected phone with real `.docx` files: simple text, headings/tables/images, Arabic/RTL, 10 MB boundary, invalid/oversized files, cancel mid-conversion, save/reopen, airplane mode.
+7. Fix any renderer/layout issues found on device. Keep everything offline and document compromises.
+8. Run final testing: airplane mode, interruptions, large files, low storage, ABI coverage, and regression across all tools.
 
 Useful reminder: the user explicitly wants the app installed on the connected phone after each stage. Check `adb devices` before assuming the cable is still attached.

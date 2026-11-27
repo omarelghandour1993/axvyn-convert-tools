@@ -1,9 +1,12 @@
 package com.axvyn.app
 
 import android.app.Application
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 
-/**
- * Application entry point. Deliberately empty in the foundation phase: there is no
- * dependency graph, network client or account system to initialise.
- */
-class AxvynApplication : Application()
+/** Application entry point for lightweight process-wide initialization. */
+class AxvynApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        PDFBoxResourceLoader.init(applicationContext)
+    }
+}

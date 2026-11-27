@@ -10,6 +10,7 @@ object Routes {
     const val EXCEL_TO_PDF = "tool/excel-to-pdf"
     const val IMAGE_TO_PDF = "tool/image-to-pdf"
     const val COMPRESS_PDF = "tool/compress-pdf"
+    const val MERGE_PDF = "tool/merge-pdf"
     const val IMAGE_COMPRESSOR = "tool/image-compressor"
     const val IMAGE_CONVERTER = "tool/image-converter"
     const val PDF_TO_IMAGE = "tool/pdf-to-image"

@@ -18,6 +18,7 @@ import com.axvyn.app.ui.theme.AccentDocument
 import com.axvyn.app.ui.theme.AccentExcel
 import com.axvyn.app.ui.theme.AccentImage
 import com.axvyn.app.ui.theme.AccentImagePdf
+import com.axvyn.app.ui.theme.AccentMerge
 import com.axvyn.app.ui.theme.AccentPdf
 import com.axvyn.app.ui.theme.AccentPowerPoint
 
@@ -56,6 +57,13 @@ val ToolCatalog: List<ToolCardModel> = listOf(
         icon = Icons.Default.PictureAsPdf,
         accent = AccentCompress,
         route = Routes.COMPRESS_PDF,
+    ),
+    ToolCardModel(
+        title = "Merge PDF",
+        description = "Combine PDFs up to 10 MB each",
+        icon = Icons.Default.PictureAsPdf,
+        accent = AccentMerge,
+        route = Routes.MERGE_PDF,
     ),
     ToolCardModel(
         title = "Image Compressor",
