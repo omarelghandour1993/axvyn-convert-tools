@@ -98,17 +98,15 @@ class ImageConverterViewModel(private val repository: ImageConverterRepository) 
         viewModelScope.launch {
             runCatching {
                 withContext(Dispatchers.IO) { repository.save(fileName, destination) }
-            }.onSuccess {
-                discardResult()
-            }.onFailure { error ->
+            }.onSuccess { discardResult("Saved successfully.") }.onFailure { error ->
                 _state.update { it.copy(message = error.message ?: "Could not save the PNG image.") }
             }
         }
     }
 
-    fun discardResult() {
+    fun discardResult(message: String? = null) {
         _state.value.result?.fileName?.let(repository::discard)
-        _state.update { it.copy(result = null, processing = ProcessingState.Idle) }
+        _state.update { it.copy(result = null, processing = ProcessingState.Idle, message = message) }
     }
 
     override fun onCleared() {

@@ -134,9 +134,7 @@ class ImageCompressorViewModel(private val repository: ImageCompressorRepository
         viewModelScope.launch {
             runCatching {
                 withContext(Dispatchers.IO) { repository.save(fileName, destination) }
-            }.onSuccess {
-                discardResult()
-            }.onFailure { error ->
+            }.onSuccess { discardResult("Saved successfully.") }.onFailure { error ->
                 _state.update {
                     it.copy(message = error.message ?: "Could not save the compressed image.")
                 }
@@ -148,9 +146,9 @@ class ImageCompressorViewModel(private val repository: ImageCompressorRepository
         _state.update { it.copy(message = null) }
     }
 
-    fun discardResult() {
+    fun discardResult(message: String? = null) {
         _state.value.result?.fileName?.let(repository::discard)
-        _state.update { it.copy(result = null, processing = ProcessingState.Idle) }
+        _state.update { it.copy(result = null, processing = ProcessingState.Idle, message = message) }
     }
 
     override fun onCleared() {

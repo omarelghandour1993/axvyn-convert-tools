@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Save
@@ -112,10 +113,17 @@ fun MergePdfScreen(
         }
 
         state.message?.let { message ->
+            val isSuccess = message == "Saved successfully."
+            val color = if (isSuccess) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             Row(verticalAlignment = Alignment.Top) {
-                Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.padding(top = 2.dp).size(18.dp), tint = MaterialTheme.colorScheme.error)
+                Icon(
+                    if (isSuccess) Icons.Default.CheckCircle else Icons.Default.Info,
+                    contentDescription = null,
+                    modifier = Modifier.padding(top = 2.dp).size(18.dp),
+                    tint = color,
+                )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error)
+                Text(message, style = MaterialTheme.typography.bodyMedium, color = color)
             }
         }
 

@@ -111,16 +111,16 @@ class MergePdfViewModel(private val repository: MergePdfRepository) : ViewModel(
         val fileName = _state.value.result?.fileName ?: return
         viewModelScope.launch {
             runCatching { withContext(Dispatchers.IO) { repository.save(fileName, destination) } }
-                .onSuccess { discardResult() }
+                .onSuccess { discardResult("Saved successfully.") }
                 .onFailure { e -> _state.update { it.copy(message = e.message ?: "Could not save the PDF.") } }
         }
     }
 
     fun clearMessage() { _state.update { it.copy(message = null) } }
 
-    fun discardResult() {
+    fun discardResult(message: String? = null) {
         _state.value.result?.fileName?.let(repository::discard)
-        _state.update { it.copy(result = null, processing = ProcessingState.Idle) }
+        _state.update { it.copy(result = null, processing = ProcessingState.Idle, message = message) }
     }
 
     override fun onCleared() {
