@@ -29,7 +29,18 @@ class AudioToMp3ViewModel(private val repository: AudioToMp3Repository) : ViewMo
         discardResult()
         viewModelScope.launch {
             runCatching { repository.inspect(uri) }
-                .onSuccess { source -> _state.update { it.copy(source = source, message = null) } }
+                .onSuccess { source ->
+                    if (source.sizeBytes > MAX_BYTES) {
+                        _state.update {
+                            it.copy(
+                                source = null,
+                                message = "This file is too large (${formatBytes(source.sizeBytes)}). Maximum allowed size is 10 MB.",
+                            )
+                        }
+                    } else {
+                        _state.update { it.copy(source = source, message = null) }
+                    }
+                }
                 .onFailure { error ->
                     _state.update {
                         it.copy(
@@ -47,8 +58,13 @@ class AudioToMp3ViewModel(private val repository: AudioToMp3Repository) : ViewMo
 
     fun convert(uri: Uri) {
         if (job?.isActive == true) return
-        if (_state.value.source == null) {
+        val source = _state.value.source
+        if (source == null) {
             _state.update { it.copy(message = "Choose an audio file first.") }
+            return
+        }
+        if (source.sizeBytes > MAX_BYTES) {
+            _state.update { it.copy(message = "This file is too large (${formatBytes(source.sizeBytes)}). Maximum allowed size is 10 MB.") }
             return
         }
         val bitrate = _state.value.bitrate
@@ -111,6 +127,10 @@ class AudioToMp3ViewModel(private val repository: AudioToMp3Repository) : ViewMo
         job?.cancel()
         _state.value.result?.fileName?.let(repository::discard)
         super.onCleared()
+    }
+
+    companion object {
+        const val MAX_BYTES = 10L * 1024 * 1024
     }
 }
 

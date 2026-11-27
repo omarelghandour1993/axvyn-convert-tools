@@ -54,10 +54,10 @@ added with the actual conversions, so the UI never owns processing code.
 | Image to PDF | JPG, PNG, WebP, 10 MB per image | Combine multiple images into one PDF; each image on its own page, aspect ratio preserved |
 | Compress PDF | PDF, max 10 MB | On-device re-render compression (image-based PDF); text selection/vector sharpness may be reduced |
 | Merge PDF | PDF, 10 MB per file | Combine multiple PDFs on-device with PdfBox-Android; preserves page content |
-| Image Compressor | JPEG, PNG, WebP | Quality, optional resize, before/after size |
-| WEBP / AVIF to PNG | WebP, AVIF | PNG output, preserves dimensions/transparency, clear unsupported-AVIF error |
-| PDF to Images | PDF | JPG/PNG, page selection, 150/300 DPI, one page at a time |
-| Audio to MP3 | M4A, WAV, FLAC | 128/192/256/320 kbps MP3 via Android MediaCodec decode + vendored LAME (LGPL v2) |
+| Image Compressor | JPEG, PNG, WebP, max 10 MB | Quality, optional resize, before/after size |
+| WEBP / AVIF to PNG | WebP, AVIF, max 10 MB | PNG output, preserves dimensions/transparency, clear unsupported-AVIF error |
+| PDF to Images | PDF, max 10 MB | JPG/PNG, page selection, 150/300 DPI, one page at a time |
+| Audio to MP3 | M4A, WAV, FLAC, max 10 MB | 128/192/256/320 kbps MP3 via Android MediaCodec decode + vendored LAME (LGPL v2) |
 
 ## Dependencies
 

@@ -88,7 +88,7 @@ fun ImageConverterScreen(
                 Text(if (sourceUri == null) "Choose a WebP or AVIF image" else "Choose a different image")
             }
             Text(
-                text = "WebP and AVIF · One image at a time · Everything stays on this device",
+                text = "WebP and AVIF · Up to 10 MB • One image at a time · Everything stays on this device",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -29,7 +29,18 @@ class ImageConverterViewModel(private val repository: ImageConverterRepository) 
         discardResult()
         viewModelScope.launch {
             runCatching { repository.inspect(uri) }
-                .onSuccess { source -> _state.update { it.copy(source = source, message = null) } }
+                .onSuccess { source ->
+                    if (source.sizeBytes > MAX_BYTES) {
+                        _state.update {
+                            it.copy(
+                                source = null,
+                                message = "This file is too large (${formatBytes(source.sizeBytes)}). Maximum allowed size is 10 MB.",
+                            )
+                        }
+                    } else {
+                        _state.update { it.copy(source = source, message = null) }
+                    }
+                }
                 .onFailure { error ->
                     _state.update {
                         it.copy(
@@ -46,6 +57,10 @@ class ImageConverterViewModel(private val repository: ImageConverterRepository) 
         if (job?.isActive == true) return
         val source = _state.value.source ?: run {
             _state.update { it.copy(message = "Choose a WebP or AVIF image first.") }
+            return
+        }
+        if (source.sizeBytes > MAX_BYTES) {
+            _state.update { it.copy(message = "This file is too large (${formatBytes(source.sizeBytes)}). Maximum allowed size is 10 MB.") }
             return
         }
         if (source.format == SourceImageFormat.UNKNOWN) {
@@ -113,6 +128,10 @@ class ImageConverterViewModel(private val repository: ImageConverterRepository) 
         job?.cancel()
         _state.value.result?.fileName?.let(repository::discard)
         super.onCleared()
+    }
+
+    companion object {
+        const val MAX_BYTES = 10L * 1024 * 1024
     }
 }
 

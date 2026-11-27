@@ -91,7 +91,7 @@ fun PdfToImageScreen(
                 Text(if (sourceUri == null) "Choose a PDF" else "Choose a different PDF")
             }
             Text(
-                text = "PDF files only · One page rendered at a time · Everything stays on this device",
+                text = "PDF up to 10 MB · One page rendered at a time · Everything stays on this device",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

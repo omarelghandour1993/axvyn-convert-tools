@@ -104,7 +104,7 @@ fun AudioToMp3Screen(
                 Text(if (sourceUri == null) "Choose an audio file" else "Choose a different audio file")
             }
             Text(
-                text = "Supported: M4A, WAV, FLAC · One file at a time · Everything stays on this device",
+                text = "Supported: M4A, WAV, FLAC · Up to 10 MB • One file at a time · Everything stays on this device",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -30,12 +30,21 @@ class PdfToImageViewModel(private val repository: PdfToImageRepository) : ViewMo
         viewModelScope.launch {
             runCatching { repository.inspect(uri) }
                 .onSuccess { source ->
-                    _state.update {
-                        it.copy(
-                            source = source,
-                            pageInput = "1",
-                            message = null,
-                        )
+                    if (source.sizeBytes > MAX_BYTES) {
+                        _state.update {
+                            it.copy(
+                                source = null,
+                                message = "This file is too large (${formatBytes(source.sizeBytes)}). Maximum allowed size is 10 MB.",
+                            )
+                        }
+                    } else {
+                        _state.update {
+                            it.copy(
+                                source = source,
+                                pageInput = "1",
+                                message = null,
+                            )
+                        }
                     }
                 }
                 .onFailure {
@@ -66,6 +75,10 @@ class PdfToImageViewModel(private val repository: PdfToImageRepository) : ViewMo
         val current = _state.value
         val source = current.source ?: run {
             _state.update { it.copy(message = "Choose a PDF first.") }
+            return
+        }
+        if (source.sizeBytes > MAX_BYTES) {
+            _state.update { it.copy(message = "This file is too large (${formatBytes(source.sizeBytes)}). Maximum allowed size is 10 MB.") }
             return
         }
         val pageNumber = current.pageInput.toIntOrNull()
@@ -143,6 +156,10 @@ class PdfToImageViewModel(private val repository: PdfToImageRepository) : ViewMo
         job?.cancel()
         _state.value.result?.fileName?.let(repository::discard)
         super.onCleared()
+    }
+
+    companion object {
+        const val MAX_BYTES = 10L * 1024 * 1024
     }
 }
 

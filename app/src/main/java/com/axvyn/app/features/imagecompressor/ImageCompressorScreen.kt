@@ -95,7 +95,7 @@ fun ImageCompressorScreen(
                 Text(if (sourceUri == null) "Choose an image" else "Choose a different image")
             }
             Text(
-                text = "JPEG, PNG or WebP · One image at a time · Everything stays on this device",
+                text = "JPEG, PNG or WebP · Up to 10 MB • One image at a time · Everything stays on this device",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

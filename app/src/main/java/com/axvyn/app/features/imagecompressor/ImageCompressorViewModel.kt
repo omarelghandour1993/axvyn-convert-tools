@@ -29,7 +29,18 @@ class ImageCompressorViewModel(private val repository: ImageCompressorRepository
         discardResult()
         viewModelScope.launch {
             runCatching { repository.inspect(uri) }
-                .onSuccess { source -> _state.update { it.copy(source = source, message = null) } }
+                .onSuccess { source ->
+                    if (source.sizeBytes > MAX_BYTES) {
+                        _state.update {
+                            it.copy(
+                                source = null,
+                                message = "This file is too large (${formatBytes(source.sizeBytes)}). Maximum allowed size is 10 MB.",
+                            )
+                        }
+                    } else {
+                        _state.update { it.copy(source = source, message = null) }
+                    }
+                }
                 .onFailure {
                     _state.update {
                         it.copy(
@@ -68,6 +79,11 @@ class ImageCompressorViewModel(private val repository: ImageCompressorRepository
     fun compress(uri: Uri) {
         if (job?.isActive == true) return
         val current = _state.value
+        val source = current.source
+        if (source != null && source.sizeBytes > MAX_BYTES) {
+            _state.update { it.copy(message = "This file is too large (${formatBytes(source.sizeBytes)}). Maximum allowed size is 10 MB.") }
+            return
+        }
         val width = current.widthInput.toIntOrNull()?.takeIf { it > 0 }
         val height = current.heightInput.toIntOrNull()?.takeIf { it > 0 }
         val targetSize = current.targetSizeKbInput.toIntOrNull()?.takeIf { it > 0 }
@@ -155,6 +171,10 @@ class ImageCompressorViewModel(private val repository: ImageCompressorRepository
         job?.cancel()
         _state.value.result?.fileName?.let(repository::discard)
         super.onCleared()
+    }
+
+    companion object {
+        const val MAX_BYTES = 10L * 1024 * 1024
     }
 }
 

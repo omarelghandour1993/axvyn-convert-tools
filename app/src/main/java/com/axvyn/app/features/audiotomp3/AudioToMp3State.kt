@@ -47,3 +47,9 @@ fun formatDuration(ms: Long): String {
     val seconds = totalSeconds % 60
     return "%d:%02d".format(minutes, seconds)
 }
+
+internal fun formatBytes(bytes: Long): String = when {
+    bytes >= 1_000_000 -> String.format("%.2f MB", bytes / 1_000_000.0)
+    bytes >= 1_000 -> String.format("%.1f KB", bytes / 1_000.0)
+    else -> "$bytes B"
+}
